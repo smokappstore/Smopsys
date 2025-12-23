@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <stdint.h>
 
 /* ============================================================
  * REIMPLEMENTACIÓN PARA TEST (evita dependencias bare-metal)
@@ -84,17 +85,24 @@ TEST(test_O_0_equals_1) {
     PASS();
 }
 
-TEST(test_O_1_is_negative) {
-    /* Ô_1 = (-1)^1 · cos(πφ) = -cos(πφ) < 0 */
+TEST(test_O_1_value) {
+    /* 
+     * Ô_1 = (-1)^1 · cos(πφ·1) = -cos(π·0.618) = -cos(1.942) ≈ -(-0.361) = +0.361
+     * El signo depende del producto de paridad y cos(πφn)
+     */
     double O_1 = test_golden_operator_compute(1);
-    ASSERT(O_1 < 0, "O_1 should be negative (parity = -1)");
+    double expected = -1.0 * cos(PI * PHI_CONJUGATE * 1);
+    ASSERT_FLOAT_EQ(O_1, expected, 1e-10, "O_1 should match (-1)^1 * cos(pi*phi*1)");
     PASS();
 }
 
-TEST(test_O_2_is_positive) {
-    /* Ô_2 = (-1)^2 · cos(2πφ) = cos(2πφ) > 0 (para φ ≈ 0.618) */
+TEST(test_O_2_value) {
+    /* 
+     * Ô_2 = (-1)^2 · cos(πφ·2) = +cos(2πφ) = cos(3.883) ≈ -0.724
+     */
     double O_2 = test_golden_operator_compute(2);
-    ASSERT(O_2 > 0, "O_2 should be positive (parity = +1)");
+    double expected = 1.0 * cos(PI * PHI_CONJUGATE * 2);
+    ASSERT_FLOAT_EQ(O_2, expected, 1e-10, "O_2 should match (+1) * cos(pi*phi*2)");
     PASS();
 }
 
@@ -245,8 +253,8 @@ int main(void) {
     
     printf("Golden Operator Tests:\n");
     RUN_TEST(test_O_0_equals_1);
-    RUN_TEST(test_O_1_is_negative);
-    RUN_TEST(test_O_2_is_positive);
+    RUN_TEST(test_O_1_value);
+    RUN_TEST(test_O_2_value);
     RUN_TEST(test_bounded_by_one);
     RUN_TEST(test_quasiperiodic_no_exact_repeat);
     RUN_TEST(test_sum_distribution);
