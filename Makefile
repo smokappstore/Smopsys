@@ -59,7 +59,7 @@ KERNEL_C_SRC = $(KERNEL_DIR)/kernel_main.c \
 
 # Archivos objeto
 KERNEL_ASM_OBJ = $(BUILD_DIR)/kernel_entry.o
-KERNEL_C_OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(notdir $(KERNEL_C_SRC)))
+KERNEL_C_OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_C_SRC))
 
 KERNEL_OBJS = $(KERNEL_ASM_OBJ) $(KERNEL_C_OBJ)
 
