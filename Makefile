@@ -1,44 +1,31 @@
 # ============================================================
-# Smopsys Q-CORE Makefile
+# Smopsys Q-CORE Makefile (v0.4 - 2-Stage Bootloader)
 # 
-# Sistema de build para el kernel metripléctico.
-# 
-# Targets:
-#   all       - Construir imagen completa (smopsys.bin)
-#   all-full  - Construir con bootloader de 2 stages
-#   kernel    - Construir solo el kernel
-#   boot      - Construir bootloaders
-#   test      - Ejecutar tests en host
-#   run       - Ejecutar en QEMU
-#   usb       - Escribir a USB (requiere sudo)
-#   clean     - Limpiar archivos generados
+# Sistema de build con bootloader de 2 etapas
+# Stage 1 (MBR) → Stage 2 → Kernel
 # ============================================================
 
-# Herramientas
 CC = i686-elf-gcc
 AS = nasm
 LD = i686-elf-ld
 OBJCOPY = i686-elf-objcopy
 
-# Fallback a gcc si no hay cross-compiler
 ifeq ($(shell which $(CC) 2>/dev/null),)
     CC = gcc -m32
     LD = ld -m elf_i386
     OBJCOPY = objcopy
 endif
 
-# Flags para cross-compilation (bare-metal x86)
 CFLAGS = -ffreestanding -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
-         -Wall -Wextra -m32 -O2 -fno-pie -fno-pic
+         -Wall -Wextra -m32 -O2 -fno-pie -fno-pic \
+         -I. -Ikernel -Idrivers
 
 LDFLAGS = -T linker.ld -nostdlib
-
 ASFLAGS = -f elf32
 
-# Directorios
-BOOT_DIR = boot
-DRIVERS_DIR = drivers
 KERNEL_DIR = kernel
+DRIVERS_DIR = drivers
+TESTS_DIR = tests
 BUILD_DIR = build
 TESTS_DIR = tests
 
@@ -48,79 +35,108 @@ STAGE2_SRC = $(BOOT_DIR)/stage2.asm
 BOOT_SRC = boot.asm  # Bootloader original simple
 
 # Archivos fuente del kernel
-KERNEL_ASM_SRC = $(KERNEL_DIR)/kernel_entry.asm
+KERNEL_ASM_SRC = $(KERNEL_DIR)kernel/kernel_entry.asm
 
-KERNEL_C_SRC = $(KERNEL_DIR)/kernel_main.c \
-               $(KERNEL_DIR)/golden_operator.c \
-               $(KERNEL_DIR)/lindblad.c \
-               $(KERNEL_DIR)/quantum_laser.c \
-               $(DRIVERS_DIR)/vga_holographic.c \
-               $(DRIVERS_DIR)/bayesian_serial.c
+KERNEL_C_SRC = $(KERNEL_DIR)kernel/kernel_main.c \
+               $(KERNEL_DIR)kernel/golden_operator.c \
+               $(KERNEL_DIR)kernel/lindblad.c \
+               $(KERNEL_DIR)kernel/quantum_laser.c \
+               $(DRIVERS_DIR)drivers/vga_holographic.c \
+               $(DRIVERS_DIR)drivers/bayesian_serial.c
 
 # Archivos objeto
-KERNEL_ASM_OBJ = $(BUILD_DIR)/kernel_entry.o
+KERNEL_ASM_OBJ = $(BUILD_DIR)kernel/kernel_entry.o \
+                 $(BUILD_DIR)kernel/kernel_main.o \
+                 $(BUILD_DIR)kernel/golden_operator.o \
+                 $(BUILD_DIR)kernel/lindblad.o \
+                 $(BUILD_DIR)kernel/quantum_laser.o \
+                 $(BUILD_DIR)drivers/vga_holographic.o \
+                 $(BUILD_DIR)drivers/bayesian_serial.o
+
 KERNEL_C_OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_C_SRC))
 
 KERNEL_OBJS = $(KERNEL_ASM_OBJ) $(KERNEL_C_OBJ)
 
 # Productos finales
 STAGE1_BIN = $(BUILD_DIR)/stage1.bin
+
+STAGE2_SRC = stage2.asm
 STAGE2_BIN = $(BUILD_DIR)/stage2.bin
-BOOT_BIN = $(BUILD_DIR)/boot.bin
+
+# ============================================================
+# KERNEL
+# ============================================================
+
+KERNEL_ENTRY_SRC = $(KERNEL_DIR)/kernel_entry.asm
+KERNEL_ENTRY_OBJ = $(BUILD_DIR)/kernel_entry.o
+
+KERNEL_C_SRCS = \
+    $(KERNEL_DIR)/kernel_main.c \
+    $(KERNEL_DIR)/golden_operator.c \
+    $(DRIVERS_DIR)/vga_holographic.c \
+    $(DRIVERS_DIR)/bayesian_serial.c
+
+KERNEL_C_OBJS = \
+    $(BUILD_DIR)/kernel_main.o \
+    $(BUILD_DIR)/golden_operator.o \
+    $(BUILD_DIR)/vga_holographic.o \
+    $(BUILD_DIR)/bayesian_serial.o
+
+KERNEL_OBJS = $(KERNEL_ENTRY_OBJ) $(KERNEL_C_OBJS)
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
+
+# ============================================================
+# PRODUCTOS FINALES
+# ============================================================
+
 OS_IMAGE = smopsys.bin
-OS_IMAGE_FULL = smopsys_full.bin
 
 # ============================================================
 # TARGETS PRINCIPALES
 # ============================================================
 
-.PHONY: all all-full kernel boot test run run-debug usb clean dirs
+.PHONY: all kernel boot test run clean dirs help
 
 all: dirs $(OS_IMAGE)
 	@echo "============================================"
 	@echo " Smopsys Q-CORE built successfully!"
+	@echo " Image: $(OS_IMAGE) (64 KB)"
 	@echo " Run with: make run"
 	@echo "============================================"
 
-all-full: dirs $(OS_IMAGE_FULL)
-	@echo "============================================"
-	@echo " Smopsys Q-CORE (Full Boot) built!"
-	@echo " Run with: make run-full"
-	@echo "============================================"
-
-# Imagen simple (bootloader original + kernel)
-$(OS_IMAGE): $(BOOT_BIN) $(KERNEL_BIN)
-	@echo "[IMAGE] Creating OS image..."
-	cat $(BOOT_BIN) $(KERNEL_BIN) > $@
-	truncate -s 65536 $@
-
-# Imagen completa (stage1 + stage2 + kernel)
-$(OS_IMAGE_FULL): $(STAGE1_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
-	@echo "[IMAGE] Creating full OS image..."
+# Crear imagen final (stage1 + stage2 + kernel)
+$(OS_IMAGE): $(STAGE1_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
+	@echo "[IMAGE] Creating OS image (2-stage boot)..."
 	cat $(STAGE1_BIN) $(STAGE2_BIN) > $@
-	# Padding para alinear kernel a sector 6 (3KB desde inicio)
+	@echo "[IMAGE] Padding to sector 6 (3KB)..."
 	truncate -s 3072 $@
+	@echo "[IMAGE] Appending kernel..."
 	cat $(KERNEL_BIN) >> $@
+	@echo "[IMAGE] Finalizing to 64KB..."
 	truncate -s 65536 $@
+	@ls -lh $@
 
 # ============================================================
-# BOOTLOADERS
+# BOOTLOADER - STAGE 1
 # ============================================================
 
-boot: dirs $(BOOT_BIN) $(STAGE1_BIN) $(STAGE2_BIN)
-
-$(BOOT_BIN): $(BOOT_SRC)
-	@echo "[ASM] Assembling simple bootloader..."
-	$(AS) -f bin $< -o $@
+boot: dirs $(STAGE1_BIN) $(STAGE2_BIN)
 
 $(STAGE1_BIN): $(STAGE1_SRC)
-	@echo "[ASM] Assembling Stage 1..."
+	@mkdir -p $(BUILD_DIR)
+	@echo "[ASM] Assembling Stage 1 bootloader (MBR)..."
 	$(AS) -f bin $< -o $@
+	@echo "      Size: $$(stat -c%s $@) bytes"
+
+# ============================================================
+# BOOTLOADER - STAGE 2
+# ============================================================
 
 $(STAGE2_BIN): $(STAGE2_SRC)
-	@echo "[ASM] Assembling Stage 2..."
+	@mkdir -p $(BUILD_DIR)
+	@echo "[ASM] Assembling Stage 2 bootloader..."
 	$(AS) -f bin $< -o $@
+	@echo "      Size: $$(stat -c%s $@) bytes"
 
 # ============================================================
 # KERNEL
@@ -131,36 +147,40 @@ kernel: dirs $(KERNEL_BIN)
 $(KERNEL_BIN): $(KERNEL_OBJS) linker.ld
 	@echo "[LD] Linking kernel..."
 	$(LD) $(LDFLAGS) $(KERNEL_OBJS) -o $(BUILD_DIR)/kernel.elf
+	@echo "[COPY] Converting to binary..."
 	$(OBJCOPY) -O binary $(BUILD_DIR)/kernel.elf $@
+	@echo "      Size: $$(stat -c%s $@) bytes"
 
-# Assembly
-$(BUILD_DIR)/kernel_entry.o: $(KERNEL_DIR)/kernel_entry.asm
+# ============================================================
+# KERNEL ENTRY (ASM)
+# ============================================================
+
+$(BUILD_DIR)/kernel_entry.o: $(KERNEL_ENTRY_SRC)
+	@mkdir -p $(BUILD_DIR)
 	@echo "[ASM] Assembling kernel entry..."
 	$(AS) $(ASFLAGS) $< -o $@
 
-# Kernel C files
+# ============================================================
+# KERNEL C FILES
+# ============================================================
+
 $(BUILD_DIR)/kernel_main.o: $(KERNEL_DIR)/kernel_main.c
+	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling kernel_main.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/golden_operator.o: $(KERNEL_DIR)/golden_operator.c
+	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling golden_operator.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/lindblad.o: $(KERNEL_DIR)/lindblad.c
-	@echo "[CC] Compiling lindblad.c..."
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/quantum_laser.o: $(KERNEL_DIR)/quantum_laser.c
-	@echo "[CC] Compiling quantum_laser.c..."
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Drivers
 $(BUILD_DIR)/vga_holographic.o: $(DRIVERS_DIR)/vga_holographic.c
+	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling vga_holographic.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/bayesian_serial.o: $(DRIVERS_DIR)/bayesian_serial.c
+	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling bayesian_serial.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -173,10 +193,11 @@ test: $(TESTS_DIR)/test_golden_operator
 	./$(TESTS_DIR)/test_golden_operator
 
 $(TESTS_DIR)/test_golden_operator: $(TESTS_DIR)/test_golden_operator.c
+	@mkdir -p $(TESTS_DIR)
 	@echo "[CC] Compiling test_golden_operator..."
-	gcc -Wall -Wextra -g -DTEST_BUILD \
-		$(TESTS_DIR)/test_golden_operator.c \
-		-o $@ -lm
+	gcc -Wall -Wextra -g -O0 \
+		-I. -Ikernel -Idrivers \
+		$< -o $@ -lm
 
 # ============================================================
 # QEMU
@@ -190,38 +211,17 @@ run: $(OS_IMAGE)
 		-no-reboot \
 		-d guest_errors
 
-run-full: $(OS_IMAGE_FULL)
-	@echo "[QEMU] Starting Smopsys Q-CORE (Full Boot)..."
-	qemu-system-i386 \
-		-drive format=raw,file=$(OS_IMAGE_FULL) \
-		-serial stdio \
-		-no-reboot \
-		-d guest_errors
-
 run-debug: $(OS_IMAGE)
-	@echo "[QEMU] Starting in debug mode..."
+	@echo "[QEMU] Starting in debug mode (gdb remote)..."
 	qemu-system-i386 \
 		-drive format=raw,file=$(OS_IMAGE) \
 		-serial stdio \
 		-no-reboot \
-		-d guest_errors,int \
+		-d guest_errors \
 		-s -S
 
 # ============================================================
-# USB
-# ============================================================
-
-usb: $(OS_IMAGE)
-	@echo "============================================"
-	@echo " Para escribir a USB, ejecuta:"
-	@echo " sudo ./write_usb.sh /dev/sdX"
-	@echo "============================================"
-	@echo ""
-	@echo "Dispositivos disponibles:"
-	@lsblk -d -o NAME,SIZE,TYPE | grep disk
-
-# ============================================================
-# UTILIDADES
+# UTILITIES
 # ============================================================
 
 dirs:
@@ -230,29 +230,40 @@ dirs:
 clean:
 	@echo "[CLEAN] Removing build artifacts..."
 	rm -rf $(BUILD_DIR)
-	rm -f $(OS_IMAGE) $(OS_IMAGE_FULL)
+	rm -f $(OS_IMAGE)
 	rm -f $(TESTS_DIR)/test_golden_operator
+	@echo "[CLEAN] Done."
 
 info: $(OS_IMAGE)
 	@echo "============================================"
 	@echo " Smopsys Q-CORE Image Info"
 	@echo "============================================"
-	@ls -la $(OS_IMAGE)
+	@ls -lh $(OS_IMAGE)
 	@echo ""
 	@file $(OS_IMAGE)
 	@echo ""
 	@echo "Components:"
-	@ls -la $(BUILD_DIR)/*.bin 2>/dev/null || echo "  (not built)"
+	@echo "  Stage 1: $$(stat -c%s $(STAGE1_BIN)) bytes"
+	@echo "  Stage 2: $$(stat -c%s $(STAGE2_BIN)) bytes"
+	@echo "  Kernel:  $$(stat -c%s $(KERNEL_BIN)) bytes"
 
 help:
 	@echo "Smopsys Q-CORE Build System"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all       - Build simple image (original bootloader)"
-	@echo "  all-full  - Build full image (stage1 + stage2 bootloader)"
-	@echo "  test      - Run unit tests on host"
-	@echo "  run       - Run in QEMU"
-	@echo "  run-full  - Run full image in QEMU"
-	@echo "  usb       - Show USB writing instructions"
-	@echo "  clean     - Remove build artifacts"
-	@echo "  info      - Show image information"
+	@echo "  all           - Build complete OS image (stage1+2+kernel)"
+	@echo "  kernel        - Build kernel only"
+	@echo "  boot          - Build bootloaders only"
+	@echo "  test          - Run unit tests on host"
+	@echo "  run           - Run image in QEMU"
+	@echo "  run-debug     - Run in QEMU with GDB remote"
+	@echo "  info          - Show image information"
+	@echo "  clean         - Remove build artifacts"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make all      # Full build"
+	@echo "  make test     # Test golden operator"
+	@echo "  make run      # Boot in QEMU"
+	@echo ""
+
+.DEFAULT_GOAL := help
