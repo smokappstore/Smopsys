@@ -19,10 +19,8 @@
  * REIMPLEMENTACIÓN PARA TEST (evita dependencias bare-metal)
  * ============================================================ */
 
-#define PHI           1.6180339887498948
-#define PHI_CONJUGATE 0.6180339887498948
-#define PI            3.14159265358979323846
-#define TWO_PI        6.28318530717958647692
+#include "../include/dit_physics.h"
+#include "../include/dit_math_fixed.h"
 
 /* Usar math.h para tests en host */
 #define golden_cos(x) cos(x)
@@ -34,7 +32,7 @@
 /* Operador áureo */
 double test_golden_operator_compute(uint32_t n) {
     double parity = (n & 1) ? -1.0 : 1.0;
-    double phase = PI * PHI_CONJUGATE * n;
+    double phase = M_PI * PHI_CONJUGATE * n;
     return parity * cos(phase);
 }
 
@@ -91,7 +89,7 @@ TEST(test_O_1_value) {
      * El signo depende del producto de paridad y cos(πφn)
      */
     double O_1 = test_golden_operator_compute(1);
-    double expected = -1.0 * cos(PI * PHI_CONJUGATE * 1);
+    double expected = -1.0 * cos(M_PI * PHI_CONJUGATE * 1);
     ASSERT_FLOAT_EQ(O_1, expected, 1e-10, "O_1 should match (-1)^1 * cos(pi*phi*1)");
     PASS();
 }
@@ -101,7 +99,7 @@ TEST(test_O_2_value) {
      * Ô_2 = (-1)^2 · cos(πφ·2) = +cos(2πφ) = cos(3.883) ≈ -0.724
      */
     double O_2 = test_golden_operator_compute(2);
-    double expected = 1.0 * cos(PI * PHI_CONJUGATE * 2);
+    double expected = 1.0 * cos(M_PI * PHI_CONJUGATE * 2);
     ASSERT_FLOAT_EQ(O_2, expected, 1e-10, "O_2 should match (+1) * cos(pi*phi*2)");
     PASS();
 }
@@ -183,8 +181,8 @@ TEST(test_phi_conjugate_property) {
 
 /* Estas funciones simulan las implementaciones bare-metal */
 static double normalize_angle(double x) {
-    while (x > PI) x -= TWO_PI;
-    while (x < -PI) x += TWO_PI;
+    while (x > M_PI) x -= 2 * M_PI;
+    while (x < -M_PI) x += 2 * M_PI;
     return x;
 }
 
@@ -216,7 +214,7 @@ static double taylor_sin(double x) {
 
 TEST(test_taylor_cos_accuracy) {
     /* Comparar nuestra implementación Taylor con math.h cos() */
-    double test_angles[] = {0.0, 0.5, 1.0, PI/4, PI/2, PI, 3*PI/2, 2*PI - 0.1};
+    double test_angles[] = {0.0, 0.5, 1.0, M_PI/4, M_PI/2, M_PI, 3*M_PI/2, 2*M_PI - 0.1};
     int num_tests = sizeof(test_angles) / sizeof(test_angles[0]);
     
     for (int i = 0; i < num_tests; i++) {
@@ -230,7 +228,7 @@ TEST(test_taylor_cos_accuracy) {
 
 TEST(test_taylor_sin_accuracy) {
     /* Comparar nuestra implementación Taylor con math.h sin() */
-    double test_angles[] = {0.0, 0.5, 1.0, PI/4, PI/2, PI, 3*PI/2};
+    double test_angles[] = {0.0, 0.5, 1.0, M_PI/4, M_PI/2, M_PI, 3*M_PI/2};
     int num_tests = sizeof(test_angles) / sizeof(test_angles[0]);
     
     for (int i = 0; i < num_tests; i++) {
@@ -238,6 +236,27 @@ TEST(test_taylor_sin_accuracy) {
         double taylor_result = taylor_sin(angle);
         double libm_result = sin(angle);
         ASSERT_FLOAT_EQ(taylor_result, libm_result, 1e-5, "Taylor sin should match libm sin");
+    }
+    PASS();
+}
+
+/* ============================================================
+ * TESTS DE PUNTO FIJO
+ * ============================================================ */
+
+TEST(test_fixed_point_accuracy) {
+    /* Comparar la implementación de punto fijo con la de punto flotante */
+    for (int n = 0; n < 100; ++n) {
+        fixed_t delta_fp = (fixed_t)(DIT_DELTA_DEFAULT * FP_ONE);
+        fixed_t fixed_result = get_golden_operator_fixed(n, delta_fp);
+
+        double float_delta = DIT_DELTA_DEFAULT;
+        double float_phase = M_PI * PHI_CONJUGATE * n + float_delta;
+        double float_result = ((n % 2 == 0) ? 1.0 : -1.0) * cos(float_phase);
+
+        double fixed_as_float = (double)fixed_result / FP_ONE;
+
+        ASSERT_FLOAT_EQ(fixed_as_float, float_result, 0.1, "Fixed-point result should be close to float result");
     }
     PASS();
 }
@@ -268,6 +287,9 @@ int main(void) {
     RUN_TEST(test_taylor_cos_accuracy);
     RUN_TEST(test_taylor_sin_accuracy);
     
+    printf("\nFixed-Point Operator Tests:\n");
+    RUN_TEST(test_fixed_point_accuracy);
+
     printf("\n============================================\n");
     printf(" Results: %d/%d passed, %d failed\n", tests_passed, tests_run, tests_failed);
     printf("============================================\n");
