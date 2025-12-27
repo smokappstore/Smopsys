@@ -20,6 +20,9 @@ KERNEL_SECTORS      equ 64          ; 32KB máximo
 KERNEL_START_SECTOR equ 6           ; Después de Stage1 + Stage2
 
 stage2_start:
+    ; Guardar unidad de boot
+    mov [boot_drive], dl
+    
     ; Mostrar mensaje
     mov si, msg_stage2
     call print_string

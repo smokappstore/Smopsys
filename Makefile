@@ -9,16 +9,20 @@ CC = i686-elf-gcc
 AS = nasm
 LD = i686-elf-ld
 OBJCOPY = i686-elf-objcopy
+CXX = i686-elf-g++
 
 ifeq ($(shell which $(CC) 2>/dev/null),)
     CC = gcc -m32
     LD = ld -m elf_i386
     OBJCOPY = objcopy
+    CXX = g++ -m32
 endif
 
 CFLAGS = -ffreestanding -nostdlib -fno-builtin -fno-stack-protector \
          -Wall -Wextra -m32 -O2 -fno-pie -fno-pic \
          -I. -Ikernel -Idrivers
+
+CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 
 LDFLAGS = -T linker.ld -nostdlib
 ASFLAGS = -f elf32
@@ -80,7 +84,8 @@ KERNEL_C_SRCS = \
     $(KERNEL_DIR)/ql_bridge.c \
     $(QL_C) \
     $(DRIVERS_DIR)/vga_holographic.c \
-    $(DRIVERS_DIR)/bayesian_serial.c
+    $(DRIVERS_DIR)/bayesian_serial.c \
+    MemoryManager.cpp
 
 KERNEL_C_OBJS = \
     $(BUILD_DIR)/kernel_main.o \
@@ -90,7 +95,8 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/ql_bridge.o \
     $(BUILD_DIR)/quantum_program.o \
     $(BUILD_DIR)/vga_holographic.o \
-    $(BUILD_DIR)/bayesian_serial.o
+    $(BUILD_DIR)/bayesian_serial.o \
+    $(BUILD_DIR)/MemoryManager.o
 
 KERNEL_OBJS = $(KERNEL_ENTRY_OBJ) $(KERNEL_C_OBJS)
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
@@ -118,8 +124,8 @@ all: dirs $(OS_IMAGE)
 $(OS_IMAGE): $(STAGE1_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
 	@echo "[IMAGE] Creating OS image (2-stage boot)..."
 	cat $(STAGE1_BIN) $(STAGE2_BIN) > $@
-	@echo "[IMAGE] Padding to sector 6 (3KB)..."
-	truncate -s 3072 $@
+	@echo "[IMAGE] Padding for Sector 6 (2560 bytes)..."
+	truncate -s 2560 $@
 	@echo "[IMAGE] Appending kernel..."
 	cat $(KERNEL_BIN) >> $@
 	@echo "[IMAGE] Finalizing to 64KB..."
@@ -218,6 +224,11 @@ $(BUILD_DIR)/bayesian_serial.o: $(DRIVERS_DIR)/bayesian_serial.c
 	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling bayesian_serial.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/MemoryManager.o: MemoryManager.cpp
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CXX] Compiling MemoryManager.cpp..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # ============================================================
 # TESTS (Host)
