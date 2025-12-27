@@ -76,24 +76,7 @@ void serial_putstr(const char* str) {
 #ifdef __cplusplus
 extern "C" {
 #endif
-    typedef struct {
-        uint32_t address;
-        uint32_t size;
-        double theta;
-        double O_n;
-        int state;
-        double entropy;
-        double thermal_viscosity;
-        uint32_t allocation_time;
-    } MetripleticPage_Bridge;
-
-    typedef struct {
-        MetripleticPage_Bridge pages[256];
-        uint32_t total_pages;
-        uint32_t allocated_pages;
-    } MemoryManager_Bridge;
-
-    extern MemoryManager_Bridge memmgr;
+    extern void check_thermal_page_impl(uint32_t address, double threshold, double *out_entropy, int *out_critical);
 #ifdef __cplusplus
 }
 #endif
@@ -102,14 +85,14 @@ void check_thermal_page(uint32_t address, double threshold) {
     bayesian_serial_write("[THERMAL] Checking page 0x");
     bayesian_serial_write_hex(address);
     
-    /* En una implementación real, buscaríamos en memmgr */
-    /* Aquí simulamos el chequeo */
-    double current_entropy = 0.45; 
+    double current_entropy = 0;
+    int critical = 0;
+    check_thermal_page_impl(address, threshold, &current_entropy, &critical);
     
     bayesian_serial_write(" entropy=");
     bayesian_serial_write_float(current_entropy, 2);
     
-    if (current_entropy > threshold) {
+    if (critical) {
         bayesian_serial_write(" -> CRITICAL (Thermal Noise)\n");
     } else {
         bayesian_serial_write(" -> STABLE\n");

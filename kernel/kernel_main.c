@@ -16,10 +16,9 @@
 #include "golden_operator.h"
 #include "ql_bridge.h"
 
-/* Forward declaration del Memory Manager */
+/* Forward declarations */
 extern void memory_init(void);
 extern void memory_timestep(uint32_t global_time);
-extern double compute_centroid_z(void);
 
 /* ============================================================
  * BANNER DEL SISTEMA

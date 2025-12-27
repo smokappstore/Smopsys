@@ -9,8 +9,46 @@
  */
 
 #include <stdint.h>
-#include <math.h>
-#include <string.h>
+
+/* Local definitions to avoid host headers */
+#define M_PI 3.14159265358979323846
+
+extern "C" void* memset(void* dest, int ch, uint32_t count) {
+    uint8_t* ptr = (uint8_t*)dest;
+    while (count--) *ptr++ = (uint8_t)ch;
+    return dest;
+}
+
+/* Math approximations for bare-metal metriplectic dynamics */
+static double fabs(double x) { return x < 0 ? -x : x; }
+
+static double sin(double x) {
+    // Bhaskara I approximation
+    double x_deg = x * 180.0 / M_PI;
+    while (x_deg > 180) x_deg -= 360;
+    while (x_deg < -180) x_deg += 360;
+    
+    int sign = 1;
+    if (x_deg < 0) { sign = -1; x_deg = -x_deg; }
+    if (x_deg > 180) { sign = -sign; x_deg -= 180; }
+    
+    return sign * (4.0 * x_deg * (180.0 - x_deg)) / (40500.0 - x_deg * (180.0 - x_deg));
+}
+
+static double cos(double x) {
+    return sin(x + M_PI / 2.0);
+}
+
+static double exp(double x) {
+    // Simple Taylor approximation for small x
+    double sum = 1.0;
+    double term = 1.0;
+    for (int i = 1; i < 10; i++) {
+        term *= x / i;
+        sum += term;
+    }
+    return sum;
+}
 
 // ============================================================
 // CONSTANTES FÍSICAS
@@ -374,6 +412,24 @@ void memory_timestep(uint32_t global_time) {
 void memory_print_diagnostics(void) {
     // Salida serial/VGA sobre estado metriplético
     // (Implementación en drivers/vga_holographic)
+}
+
+// ============================================================
+// API PARA BRIDGE (C)
+// ============================================================
+
+extern "C" {
+    void check_thermal_page_impl(uint32_t address, double threshold, double *out_entropy, int *out_critical) {
+        for (uint32_t i = 0; i < memmgr.total_pages; i++) {
+            if (memmgr.pages[i].address == address) {
+                *out_entropy = memmgr.pages[i].theta / (2.0 * M_PI); // Entropía normalizada [0, 1]
+                *out_critical = (memmgr.pages[i].theta > threshold * 2.0 * M_PI);
+                return;
+            }
+        }
+        *out_entropy = 0.0;
+        *out_critical = 0;
+    }
 }
 
 // ============================================================
