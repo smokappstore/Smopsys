@@ -24,7 +24,16 @@ _start:
     ; Asegurar dirección de memoria incremental
     cld
     
-    ; Configurar segmentos de datos (ya deberían estar desde bootloader)
+    ; -----------------------------------------------------
+    ; Habilitar FPU (Floating Point Unit)
+    ; -----------------------------------------------------
+    mov eax, cr0
+    and ax, 0xFFFB      ; Clear EM (bit 2)
+    or ax, 0x0022       ; Set MP (bit 1) and NE (bit 5)
+    mov cr0, eax
+    finit               ; Inicializar FPU
+    
+    ; Configurar segmentos de datos
     mov ax, 0x10            ; Selector de datos (GDT entry 2)
     mov ds, ax
     mov es, ax
@@ -32,9 +41,21 @@ _start:
     mov gs, ax
     mov ss, ax
     
-    ; Configurar pila
-    mov ebp, 0x90000        ; Base de pila en zona segura
-    mov esp, ebp
+    ; Configurar pila usando el espacio reservado en BSS
+    mov esp, stack_top
+    mov ebp, esp
+    
+    ; -----------------------------------------------------
+    ; Limpiar sección BSS (poner a cero)
+    ; -----------------------------------------------------
+    [EXTERN __bss_start]
+    [EXTERN __bss_end]
+    
+    mov edi, __bss_start    ; Inicio de BSS
+    mov ecx, __bss_end      ; Fin de BSS
+    sub ecx, edi            ; Tamaño en bytes
+    xor eax, eax            ; Valor a escribir (0)
+    rep stosb               ; Escribir ceros byte a byte
     
     ; -----------------------------------------------------
     ; Llamar al kernel principal en C
@@ -54,5 +75,5 @@ _start:
 ; Sección de datos BSS (no inicializada)
 ; ============================================================
 section .bss
-    resb 16384              ; Reservar 16KB para pila
+    resb 32768              ; Reservar 32KB para pila
 stack_top:

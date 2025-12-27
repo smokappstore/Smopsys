@@ -85,6 +85,8 @@ KERNEL_C_SRCS = \
     $(QL_C) \
     $(DRIVERS_DIR)/vga_holographic.c \
     $(DRIVERS_DIR)/bayesian_serial.c \
+    $(DRIVERS_DIR)/metriplectic_kbd.c \
+    kernel/shell.c \
     MemoryManager.cpp
 
 KERNEL_C_OBJS = \
@@ -96,6 +98,8 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/quantum_program.o \
     $(BUILD_DIR)/vga_holographic.o \
     $(BUILD_DIR)/bayesian_serial.o \
+    $(BUILD_DIR)/metriplectic_kbd.o \
+    $(BUILD_DIR)/shell.o \
     $(BUILD_DIR)/MemoryManager.o
 
 KERNEL_OBJS = $(KERNEL_ENTRY_OBJ) $(KERNEL_C_OBJS)
@@ -223,6 +227,16 @@ $(BUILD_DIR)/vga_holographic.o: $(DRIVERS_DIR)/vga_holographic.c
 $(BUILD_DIR)/bayesian_serial.o: $(DRIVERS_DIR)/bayesian_serial.c
 	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling bayesian_serial.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/metriplectic_kbd.o: $(DRIVERS_DIR)/metriplectic_kbd.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling metriplectic_kbd.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/shell.o: kernel/shell.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling shell.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/MemoryManager.o: MemoryManager.cpp

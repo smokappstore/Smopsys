@@ -23,7 +23,7 @@
  * ============================================================ */
 
 /* Dimensiones máximas (para bare-metal sin malloc) */
-#define LINDBLAD_MAX_DIM      64    /* Dimensión máxima del espacio de Hilbert */
+#define LINDBLAD_MAX_DIM      16    /* Dimensión máxima del espacio de Hilbert */
 #define LINDBLAD_MAX_OPS      8     /* Número máximo de operadores de salto */
 
 /* ============================================================

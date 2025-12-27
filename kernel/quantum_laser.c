@@ -76,7 +76,7 @@ static void create_annihilation_cavity(CMatrix *a, uint32_t dim_cavity) {
 
 /* Operador de creación: a†|n⟩ = √(n+1)|n+1⟩ */
 static void create_creation_cavity(CMatrix *a_dag, uint32_t dim_cavity) {
-    CMatrix a;
+    static CMatrix a;
     create_annihilation_cavity(&a, dim_cavity);
     cmatrix_dagger(a_dag, &a);
 }
@@ -92,28 +92,28 @@ static void create_sigma_atom(CMatrix *sigma, uint32_t i, uint32_t j, uint32_t d
 /* Operadores en el espacio producto H_atom ⊗ H_cavity */
 
 void laser_create_annihilation(CMatrix *a_total, uint32_t dim_atom, uint32_t dim_cavity) {
-    CMatrix I_atom, a_cavity;
+    static CMatrix I_atom, a_cavity;
     cmatrix_identity(&I_atom, dim_atom);
     create_annihilation_cavity(&a_cavity, dim_cavity);
     kronecker(a_total, &I_atom, &a_cavity);
 }
 
 void laser_create_creation(CMatrix *a_dag_total, uint32_t dim_atom, uint32_t dim_cavity) {
-    CMatrix a_total;
+    static CMatrix a_total;
     laser_create_annihilation(&a_total, dim_atom, dim_cavity);
     cmatrix_dagger(a_dag_total, &a_total);
 }
 
 void laser_create_sigma(CMatrix *sigma_total, uint32_t i, uint32_t j,
                         uint32_t dim_atom, uint32_t dim_cavity) {
-    CMatrix sigma_atom, I_cavity;
+    static CMatrix sigma_atom, I_cavity;
     create_sigma_atom(&sigma_atom, i, j, dim_atom);
     cmatrix_identity(&I_cavity, dim_cavity);
     kronecker(sigma_total, &sigma_atom, &I_cavity);
 }
 
 void laser_create_number(CMatrix *N, uint32_t dim_atom, uint32_t dim_cavity) {
-    CMatrix a, a_dag;
+    static CMatrix a, a_dag;
     laser_create_annihilation(&a, dim_atom, dim_cavity);
     laser_create_creation(&a_dag, dim_atom, dim_cavity);
     cmatrix_mul(N, &a_dag, &a);
@@ -139,8 +139,8 @@ void laser_build_system(
      * H = ω_c a†a + ω_a |2⟩⟨2| + g(a†σ_12 + a σ_21)
      * ======================================== */
     
-    CMatrix H, a, a_dag, N, sigma_22, sigma_12, sigma_21;
-    CMatrix term1, term2, term3, temp;
+    static CMatrix H, a, a_dag, N, sigma_22, sigma_12, sigma_21;
+    static CMatrix term1, term2, term3, temp;
     
     /* a†a (número de fotones) */
     laser_create_number(&N, dim_a, dim_c);
@@ -182,12 +182,12 @@ void laser_build_system(
     lindblad_add_jump_operator(sys, &a, p->kappa);
     
     /* L_p = σ_30 (bombeo 0 → 3) */
-    CMatrix sigma_30;
+    static CMatrix sigma_30;
     laser_create_sigma(&sigma_30, 3, 0, dim_a, dim_c);
     lindblad_add_jump_operator(sys, &sigma_30, p->pump_rate);
     
     /* L_32 = σ_23 (decay 3 → 2) */
-    CMatrix sigma_23;
+    static CMatrix sigma_23;
     laser_create_sigma(&sigma_23, 2, 3, dim_a, dim_c);
     lindblad_add_jump_operator(sys, &sigma_23, p->gamma_32);
     
@@ -195,7 +195,7 @@ void laser_build_system(
     lindblad_add_jump_operator(sys, &sigma_12, p->gamma_21);
     
     /* L_10 = σ_01 (decay 1 → 0) */
-    CMatrix sigma_01;
+    static CMatrix sigma_01;
     laser_create_sigma(&sigma_01, 0, 1, dim_a, dim_c);
     lindblad_add_jump_operator(sys, &sigma_01, p->gamma_10);
     
@@ -220,14 +220,14 @@ void laser_compute_observables(
     uint32_t dim_c = p->dim_cavity;
     
     /* Número medio de fotones <a†a> */
-    CMatrix N;
+    static CMatrix N;
     laser_create_number(&N, dim_a, dim_c);
     Complex n_exp = lindblad_expect(rho, &N);
     state->n_photons = n_exp.re;
     
     /* Poblaciones P_i = Tr(ρ |i⟩⟨i|) */
     for (uint32_t i = 0; i < 4; i++) {
-        CMatrix sigma_ii;
+        static CMatrix sigma_ii;
         laser_create_sigma(&sigma_ii, i, i, dim_a, dim_c);
         Complex pop = lindblad_expect(rho, &sigma_ii);
         state->population[i] = pop.re;
@@ -237,7 +237,7 @@ void laser_compute_observables(
     state->inversion = state->population[2] - state->population[1];
     
     /* Coherencia |⟨σ_21⟩| */
-    CMatrix sigma_21;
+    static CMatrix sigma_21;
     laser_create_sigma(&sigma_21, 2, 1, dim_a, dim_c);
     Complex coh = lindblad_expect(rho, &sigma_21);
     state->coherence = golden_sqrt(coh.re * coh.re + coh.im * coh.im);

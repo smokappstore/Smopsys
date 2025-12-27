@@ -10,6 +10,11 @@
 
 #include <stdint.h>
 
+extern "C" {
+    void memory_init(void);
+    void memory_timestep(uint32_t global_time);
+}
+
 /* Local definitions to avoid host headers */
 #define M_PI 3.14159265358979323846
 

@@ -15,6 +15,7 @@
 #include "../drivers/bayesian_serial.h"
 #include "golden_operator.h"
 #include "ql_bridge.h"
+#include "shell.h"
 
 /* Forward declarations */
 extern void memory_init(void);
@@ -174,6 +175,8 @@ void kernel_main(void) {
      * FASE 2: Inicialización del estado metripléctico
      * ======================================== */
     
+    memory_init();
+    
     GoldenState state;
     GoldenObservables obs;
     
@@ -190,73 +193,13 @@ void kernel_main(void) {
     vga_holographic_write("\n[QL] Starting Quantum Laser Program...\n");
     quantum_program();
     vga_holographic_write("[QL] Quantum Program Terminated.\n");
+
+    /* Darwin shell simulation */
+    delay(2000000);
+    shell_init();
+    shell_start();
     
-    /* ========================================
-     * FASE 3: Loop principal de evolución
-     * ======================================== */
-    
-    vga_holographic_set_color(VGA_COLOR_YELLOW, VGA_COLOR_BLACK);
-    vga_holographic_write("\n--- METRIPLECTIC EVOLUTION ---\n");
-    bayesian_serial_write("\n--- METRIPLECTIC EVOLUTION START ---\n");
-    
-    /* Evolucionar por 50 pasos */
-    for (uint32_t step = 0; step < 50; step++) {
-        /* Evolución metriplética */
-        golden_operator_step(&state);
-        
-        /* Calcular observables */
-        golden_operator_compute_observables(&state, &obs);
-        
-        /* Mostrar estado cada 5 pasos */
-        if (step % 5 == 0) {
-            display_operator_state(&state, &obs);
-        }
-        
-        /* Mostrar competencia de Lagrangianos cada 10 pasos */
-        if (step % 10 == 0) {
-            display_lagrangian_competition(&state);
-        }
-        
-        /* Delay para visualización humana */
-        delay(5000000);
-    }
-    
-    /* ========================================
-     * FASE 4: Estado final y halt
-     * ======================================== */
-    
-    vga_holographic_write_char('\n');
-    vga_holographic_write_char('\n');
-    vga_holographic_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
-    vga_holographic_write("============================================================\n");
-    vga_holographic_write("  METRIPLECTIC EQUILIBRIUM REACHED\n");
-    vga_holographic_write("============================================================\n");
-    
-    /* Final state report */
-    vga_holographic_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
-    vga_holographic_write("\nFinal State:\n");
-    vga_holographic_write_labeled("  theta", state.theta);
-    vga_holographic_write_labeled("  O_n", state.O_n);
-    vga_holographic_write_labeled("  entropy", state.entropy);
-    vga_holographic_write_labeled("  viscosity", state.viscosity);
-    
-    /* Serial final report */
-    bayesian_serial_write("\n=== FINAL STATE ===\n");
-    bayesian_serial_write_labeled("theta", state.theta);
-    bayesian_serial_write_labeled("O_n", state.O_n);
-    bayesian_serial_write_labeled("L_symp", state.L_symp);
-    bayesian_serial_write_labeled("L_metr", state.L_metr);
-    bayesian_serial_write_labeled("entropy", state.entropy);
-    bayesian_serial_write_labeled("Reynolds_info", obs.reynolds_info);
-    bayesian_serial_write_labeled("IPR", obs.ipr);
-    bayesian_serial_write("===================\n");
-    
-    /* Z-Pinch Lock indicator (cyan 'Q' en el centro) */
-    vga_holographic_set_cursor(12, 39);
-    vga_holographic_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
-    vga_holographic_write_char('Q');
-    
-    /* Halt infinito (controlado por kernel_entry.asm) */
+    /* Halt infinito */
     while (1) {
         __asm__ __volatile__("hlt");
     }

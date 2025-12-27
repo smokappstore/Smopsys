@@ -50,7 +50,7 @@ void cmatrix_dagger(CMatrix *dst, const CMatrix *src) {
 }
 
 void cmatrix_mul(CMatrix *C, const CMatrix *A, const CMatrix *B) {
-    CMatrix temp;
+    static CMatrix temp;
     cmatrix_zero(&temp, A->rows, B->cols);
     
     for (uint32_t i = 0; i < A->rows; i++) {
@@ -67,7 +67,7 @@ void cmatrix_mul(CMatrix *C, const CMatrix *A, const CMatrix *B) {
 }
 
 void cmatrix_commutator(CMatrix *C, const CMatrix *A, const CMatrix *B) {
-    CMatrix AB, BA;
+    static CMatrix AB, BA;
     cmatrix_mul(&AB, A, B);
     cmatrix_mul(&BA, B, A);
     
@@ -81,7 +81,7 @@ void cmatrix_commutator(CMatrix *C, const CMatrix *A, const CMatrix *B) {
 }
 
 void cmatrix_anticommutator(CMatrix *C, const CMatrix *A, const CMatrix *B) {
-    CMatrix AB, BA;
+    static CMatrix AB, BA;
     cmatrix_mul(&AB, A, B);
     cmatrix_mul(&BA, B, A);
     
@@ -186,10 +186,9 @@ void lindblad_compute_terms(
     cmatrix_zero(dissipative_term, dim, dim);
     
     for (uint32_t k = 0; k < sys->num_ops; k++) {
-        CMatrix LrhoLd, anticomm, term;
+        static CMatrix LrhoLd, anticomm, term, Lrho;
         
         /* L_k ρ L_k† */
-        CMatrix Lrho;
         cmatrix_mul(&Lrho, &sys->L_ops[k], rho);
         cmatrix_mul(&LrhoLd, &Lrho, &sys->L_dag[k]);
         
@@ -205,7 +204,7 @@ void lindblad_compute_terms(
 }
 
 void lindblad_rhs(const LindbladSystem *sys, const CMatrix *rho, CMatrix *drho_dt) {
-    CMatrix unitary, dissipative;
+    static CMatrix unitary, dissipative;
     
     lindblad_compute_terms(sys, rho, &unitary, &dissipative);
     
@@ -219,7 +218,7 @@ void lindblad_rhs(const LindbladSystem *sys, const CMatrix *rho, CMatrix *drho_d
 
 void lindblad_step_rk4(LindbladSystem *sys, CMatrix *rho, double dt) {
     uint32_t dim = sys->dim;
-    CMatrix k1, k2, k3, k4, temp, result;
+    static CMatrix k1, k2, k3, k4, temp, result;
     Complex half_dt = complex_make(dt * 0.5, 0.0);
     Complex sixth_dt = complex_make(dt / 6.0, 0.0);
     Complex dt_c = complex_make(dt, 0.0);
@@ -272,7 +271,7 @@ void lindblad_evolve(LindbladSystem *sys, CMatrix *rho, double t_total, double d
 
 Complex lindblad_expect(const CMatrix *rho, const CMatrix *O) {
     /* <O> = Tr(ρ O) */
-    CMatrix rhoO;
+    static CMatrix rhoO;
     cmatrix_mul(&rhoO, rho, O);
     return cmatrix_trace(&rhoO);
 }
@@ -285,7 +284,7 @@ void lindblad_compute_state(LindbladState *state, const CMatrix *rho) {
     state->trace = tr.re;
     
     /* Pureza = Tr(ρ²) */
-    CMatrix rho2;
+    static CMatrix rho2;
     cmatrix_mul(&rho2, rho, rho);
     Complex purity = cmatrix_trace(&rho2);
     state->purity = purity.re;

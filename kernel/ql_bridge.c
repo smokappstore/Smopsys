@@ -28,6 +28,9 @@ char *strstr(const char *haystack, const char *needle) {
 #define CYCLES_PER_NS 10
 
 void laser_pulse_emit(const char* wavelength, const char* duration, char polarization) {
+    static LindbladSystem sys;
+    static CMatrix rho;
+    
     bayesian_serial_write("[LASER] Emitting pulse: ");
     bayesian_serial_write(wavelength);
     bayesian_serial_write(" ");
@@ -44,8 +47,9 @@ void laser_pulse_emit(const char* wavelength, const char* duration, char polariz
     if (strstr(wavelength, "1550")) p.omega_atom = 0.8;
     else if (strstr(wavelength, "405")) p.omega_atom = 2.5;
     
-    LindbladSystem sys;
-    CMatrix rho;
+    p.dt = 0.5;      /* Mucho más rápido para QEMU */
+    p.t_end = 5.0;    /* Pocos pasos para demostración */
+    
     laser_build_system(&p, &sys, &rho);
     
     /* Evolución corta para simular el pulso */
