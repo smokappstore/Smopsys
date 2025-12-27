@@ -18,6 +18,8 @@ El proyecto ha alcanzado una fase de estabilidad operacional donde el flujo de i
 - **[Golden Operator](file:///home/jako/smopsys/Smopsys/kernel/golden_operator.h)**: Implementación del Operador Cuasiperiódico $\hat{O}_n = \cos(\pi n) \cos(\pi \phi n)$. Gestiona el scheduling basado en proyecciones dimensionales.
 - **[Lindblad Master Equation](file:///home/jako/smopsys/Smopsys/kernel/lindblad.h)**: Motor de evolución cuántica abierta. Implementa el Mandato Metripléctico separando explícitamente $L_{symp}$ (Hamiltoniano) y $L_{metr}$ (Disipativo).
 - **Fixed-Point Math**: Biblioteca matemática optimizada para bare-metal sin FPU.
+- **[Panic System](file:///home/jako/smopsys/Smopsys/kernel/panic.h)**: Sistema de gestión de excepciones críticas que implementa la "Singularidad de Entropía Máxima". Transiciona el sistema a un estado disipativo puro para evitar la muerte térmica y proteger la integridad del kernel.
+
 
 #### 3. Drivers de Hardware
 - **[VGA Holographic](file:///home/jako/smopsys/Smopsys/drivers/vga_holographic.h)**: Driver visual con mapeo de estados físicos a colores (Polo Norte/Coherente → Verde, Polo Sur/Disipativo → Rojo).
@@ -28,6 +30,12 @@ Lenguaje de nivel medio para el control de pulsos cuánticos y sincronización d
 - **Sintaxis**: `PULSE`, `WAIT`, `MEASURE`, `ENTANGLE`, `BROADCAST`, `THERMAL`, `SYNC`.
 - **Compilación**: El motor QL traduce los scripts `.sql` a código C que se enlaza directamente con el kernel.
 
+#### 5. [Memory Manager](file:///home/jako/smopsys/Smopsys/MemoryManager.cpp)
+Gestor de memoria con acoplamiento termodinámico.
+- **Centroide Z-Finch**: Monitorea el confinamiento de la información en las páginas.
+- **Evaporación de Hawking**: Las páginas liberadas entran en un estado de evaporación granular antes de ser marcadas como vacías.
+
+
 ## 🛠 Arquitectura
 ```mermaid
 graph TD
@@ -37,8 +45,21 @@ graph TD
     D --> E[Golden Operator Sched]
     D --> F[Lindblad Dynamics]
     E --> G[Visual Output: VGA]
+    D --> F[Lindblad Dynamics]
+    D --> I[Panic System: Entropy Sink]
+    E --> G[Visual Output: VGA]
     F --> H[I/O: Bayesian Serial]
 ```
+
+## ⌨️ Shell y Diagnósticos
+El sistema cuenta con un shell interactivo (`ql-bias>`) para monitorear el corazón del kernel:
+- `status`: Muestra el estado del Operador Áureo y el flujo (LAMINAR/TURBULENT).
+- `memory`: Resumen termodinámico (Entropía total, Centroide Z-Finch).
+- `pages`: Inspección granular de los Informones (páginas de memoria).
+- `ticks`: Contador de latidos de hardware (PIT).
+- `laser`: Estado de la retroalimentación del sistema de pulsos.
+- `panic`: (Prueba) Dispara manualmente una singularidad de entropía.
+
 
 ## 📐 El Mandato Metripléctico
 Todo sistema dinámico en Smopsys debe definirse mediante:

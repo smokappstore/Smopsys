@@ -435,6 +435,19 @@ extern "C" {
         *out_entropy = 0.0;
         *out_critical = 0;
     }
+
+    uint32_t memory_get_used_pages(void) { return memmgr.allocated_pages; }
+    uint32_t memory_get_total_pages(void) { return memmgr.total_pages; }
+    double memory_get_centroid_z(void) { return memmgr.centroid_z; }
+    double memory_get_total_entropy(void) { return memmgr.total_entropy; }
+
+    int memory_get_page_stats(uint32_t idx, uint32_t *addr, double *theta, int *state) {
+        if (idx >= memmgr.total_pages) return 0;
+        *addr = memmgr.pages[idx].address;
+        *theta = memmgr.pages[idx].theta;
+        *state = (int)memmgr.pages[idx].state;
+        return 1;
+    }
 }
 
 // ============================================================
