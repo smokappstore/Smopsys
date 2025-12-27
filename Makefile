@@ -88,6 +88,7 @@ KERNEL_C_SRCS = \
     $(DRIVERS_DIR)/metriplectic_kbd.c \
     $(DRIVERS_DIR)/metriplectic_heartbeat.c \
     $(KERNEL_DIR)/idt.c \
+    $(KERNEL_DIR)/panic.c \
     kernel/shell.c \
     MemoryManager.cpp
 
@@ -103,6 +104,7 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/metriplectic_kbd.o \
     $(BUILD_DIR)/metriplectic_heartbeat.o \
     $(BUILD_DIR)/idt.o \
+    $(BUILD_DIR)/panic.o \
     $(BUILD_DIR)/interrupt_stubs.o \
     $(BUILD_DIR)/shell.o \
     $(BUILD_DIR)/MemoryManager.o
@@ -253,6 +255,12 @@ $(BUILD_DIR)/idt.o: $(KERNEL_DIR)/idt.c
 	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling idt.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/panic.o: $(KERNEL_DIR)/panic.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling panic.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
 $(BUILD_DIR)/metriplectic_heartbeat.o: $(DRIVERS_DIR)/metriplectic_heartbeat.c
 	@mkdir -p $(BUILD_DIR)

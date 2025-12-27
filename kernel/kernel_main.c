@@ -18,6 +18,8 @@
 #include "shell.h"
 #include "idt.h"
 #include "../drivers/metriplectic_heartbeat.h"
+#include "panic.h"
+
 
 /* Global state for the Metriplectic heart */
 GoldenState current_golden_state;
@@ -198,6 +200,10 @@ void kernel_main(void) {
     vga_holographic_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
     vga_holographic_write("\n[INIT] Golden Operator initialized and Heartbeat started.\n");
     bayesian_serial_write("[INIT] Metriplectic kernel started\n");
+
+    /* TEST: Simular un pánico manual */
+    // panic("Manual test of the Metriplectic Panic System");
+
 
     /* ========================================
      * FASE QL: Ejecución de programa cuántico

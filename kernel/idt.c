@@ -1,4 +1,5 @@
 #include "idt.h"
+#include "panic.h"
 #include "../drivers/bayesian_serial.h"
 
 extern void metriplectic_heartbeat_handler(void);
@@ -83,12 +84,20 @@ void idt_init(void) {
 
 /* Handler genérico llamado desde los stubs */
 void isr_handler(uint32_t int_no) {
+    /* Excepciones de CPU (0-31) */
+    if (int_no < 32) {
+        char msg[64] = "CPU Exception: ";
+        /* En un kernel más avanzado mapearíamos int_no a nombres de excepción */
+        panic("Unhandled CPU Exception");
+    }
+
     /* IRQ0: Metriplectic Heartbeat */
     if (int_no == 32) {
         metriplectic_heartbeat_handler();
     }
     
     /* Por ahora solo enviamos EOI si es una interrupción física (IRQ) */
+
     if (int_no >= 32 && int_no <= 47) {
         if (int_no >= 40) {
             outb(PIC2_COMMAND, PIC_EOI);
