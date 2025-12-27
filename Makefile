@@ -86,6 +86,8 @@ KERNEL_C_SRCS = \
     $(DRIVERS_DIR)/vga_holographic.c \
     $(DRIVERS_DIR)/bayesian_serial.c \
     $(DRIVERS_DIR)/metriplectic_kbd.c \
+    $(DRIVERS_DIR)/metriplectic_heartbeat.c \
+    $(KERNEL_DIR)/idt.c \
     kernel/shell.c \
     MemoryManager.cpp
 
@@ -99,6 +101,9 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/vga_holographic.o \
     $(BUILD_DIR)/bayesian_serial.o \
     $(BUILD_DIR)/metriplectic_kbd.o \
+    $(BUILD_DIR)/metriplectic_heartbeat.o \
+    $(BUILD_DIR)/idt.o \
+    $(BUILD_DIR)/interrupt_stubs.o \
     $(BUILD_DIR)/shell.o \
     $(BUILD_DIR)/MemoryManager.o
 
@@ -243,6 +248,21 @@ $(BUILD_DIR)/MemoryManager.o: MemoryManager.cpp
 	@mkdir -p $(BUILD_DIR)
 	@echo "[CXX] Compiling MemoryManager.cpp..."
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/idt.o: $(KERNEL_DIR)/idt.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling idt.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/metriplectic_heartbeat.o: $(DRIVERS_DIR)/metriplectic_heartbeat.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling metriplectic_heartbeat.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/interrupt_stubs.o: $(KERNEL_DIR)/interrupt_stubs.asm
+	@mkdir -p $(BUILD_DIR)
+	@echo "[ASM] Assembling interrupt stubs..."
+	$(AS) $(ASFLAGS) $< -o $@
 
 # ============================================================
 # TESTS (Host)

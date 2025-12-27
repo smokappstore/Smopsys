@@ -5,9 +5,12 @@
 #include "shell.h"
 #include "../drivers/vga_holographic.h"
 #include "../drivers/metriplectic_kbd.h"
-#include "../drivers/bayesian_serial.h"
 #include "golden_operator.h"
+#include "../drivers/metriplectic_heartbeat.h"
 #include <stdint.h>
+
+extern GoldenState current_golden_state;
+extern GoldenObservables current_golden_obs;
 
 /* Local string utilities */
 static int strcmp(const char *s1, const char *s2) {
@@ -36,12 +39,21 @@ static void shell_prompt(void) {
 
 static void exec_command(const char *cmd) {
     if (strcmp(cmd, "help") == 0) {
-        vga_holographic_write("Commands: status, memory, laser, clear, help\n");
+        vga_holographic_write("Commands: status, ticks, memory, laser, clear, help\n");
     } else if (strcmp(cmd, "clear") == 0) {
         vga_holographic_clear();
+    } else if (strcmp(cmd, "ticks") == 0) {
+        vga_holographic_write("System Heartbeat (ms): ");
+        vga_holographic_write_decimal(metriplectic_heartbeat_get_ticks());
+        vga_holographic_write("\n");
     } else if (strcmp(cmd, "status") == 0) {
-        vga_holographic_write("System: LAMINAR FLOW\n");
-        /* Aquí se podría integrar el estado real de golden_operator */
+        vga_holographic_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
+        vga_holographic_write("\n--- METRIPLECTIC ENGINE STATE ---\n");
+        vga_holographic_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+        vga_holographic_write("  Ticks: "); vga_holographic_write_decimal(metriplectic_heartbeat_get_ticks());
+        vga_holographic_write("\n  O_n:   "); vga_holographic_write_float(current_golden_state.O_n, 6);
+        vga_holographic_write("\n  Theta: "); vga_holographic_write_float(current_golden_state.theta, 6);
+        vga_holographic_write("\n  Flow:  LAMINAR\n");
     } else if (strcmp(cmd, "laser") == 0) {
         vga_holographic_write("Laser: Active (Metriplectic feedback loop)\n");
     } else if (strlen(cmd) > 0) {
