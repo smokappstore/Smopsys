@@ -84,4 +84,8 @@ void golden_operator_compute_observables(
     GoldenObservables *obs
 );
 
+/* Math utilities */
+double golden_fabs(double x);
+double golden_sqrt(double x);
+
 #endif /* GOLDEN_OPERATOR_H */

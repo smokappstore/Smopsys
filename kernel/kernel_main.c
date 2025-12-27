@@ -14,6 +14,7 @@
 #include "../drivers/vga_holographic.h"
 #include "../drivers/bayesian_serial.h"
 #include "golden_operator.h"
+#include "ql_bridge.h"
 
 /* Forward declaration del Memory Manager */
 extern void memory_init(void);
@@ -182,6 +183,14 @@ void kernel_main(void) {
     vga_holographic_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
     vga_holographic_write("\n[INIT] Golden Operator initialized at theta=0 (North Pole)\n");
     bayesian_serial_write("[INIT] Metriplectic kernel started\n");
+
+    /* ========================================
+     * FASE QL: Ejecución de programa cuántico
+     * ======================================== */
+    vga_holographic_set_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK);
+    vga_holographic_write("\n[QL] Starting Quantum Laser Program...\n");
+    quantum_program();
+    vga_holographic_write("[QL] Quantum Program Terminated.\n");
     
     /* ========================================
      * FASE 3: Loop principal de evolución

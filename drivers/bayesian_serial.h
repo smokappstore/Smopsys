@@ -13,7 +13,7 @@
 #ifndef BAYESIAN_SERIAL_H
 #define BAYESIAN_SERIAL_H
 
-#include <bayesian_serial.h>
+#include <stdint.h>
 
 /* Registros del puerto serial COM1 */
 #define SERIAL_COM1_BASE     0x3F8

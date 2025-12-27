@@ -16,23 +16,24 @@ ifeq ($(shell which $(CC) 2>/dev/null),)
     OBJCOPY = objcopy
 endif
 
-CFLAGS = -ffreestanding -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
+CFLAGS = -ffreestanding -nostdlib -fno-builtin -fno-stack-protector \
          -Wall -Wextra -m32 -O2 -fno-pie -fno-pic \
          -I. -Ikernel -Idrivers
 
 LDFLAGS = -T linker.ld -nostdlib
 ASFLAGS = -f elf32
 
+# Directorios
 KERNEL_DIR = kernel
 DRIVERS_DIR = drivers
-TESTS_DIR = tests
+BOOT_DIR = .
 BUILD_DIR = build
 TESTS_DIR = tests
 
 # Archivos fuente del bootloader
 STAGE1_SRC = $(BOOT_DIR)/stage1.asm
 STAGE2_SRC = $(BOOT_DIR)/stage2.asm
-BOOT_SRC = boot.asm  # Bootloader original simple
+BOOT_SRC = $(BOOT_DIR)/boot.asm
 
 # Archivos fuente del kernel
 KERNEL_ASM_SRC = $(KERNEL_DIR)kernel/kernel_entry.asm
@@ -59,8 +60,6 @@ KERNEL_OBJS = $(KERNEL_ASM_OBJ) $(KERNEL_C_OBJ)
 
 # Productos finales
 STAGE1_BIN = $(BUILD_DIR)/stage1.bin
-
-STAGE2_SRC = stage2.asm
 STAGE2_BIN = $(BUILD_DIR)/stage2.bin
 
 # ============================================================
@@ -70,15 +69,26 @@ STAGE2_BIN = $(BUILD_DIR)/stage2.bin
 KERNEL_ENTRY_SRC = $(KERNEL_DIR)/kernel_entry.asm
 KERNEL_ENTRY_OBJ = $(BUILD_DIR)/kernel_entry.o
 
+QL_SRC = ql/example.sql
+QL_C = $(BUILD_DIR)/quantum_program.c
+
 KERNEL_C_SRCS = \
     $(KERNEL_DIR)/kernel_main.c \
     $(KERNEL_DIR)/golden_operator.c \
+    $(KERNEL_DIR)/lindblad.c \
+    $(KERNEL_DIR)/quantum_laser.c \
+    $(KERNEL_DIR)/ql_bridge.c \
+    $(QL_C) \
     $(DRIVERS_DIR)/vga_holographic.c \
     $(DRIVERS_DIR)/bayesian_serial.c
 
 KERNEL_C_OBJS = \
     $(BUILD_DIR)/kernel_main.o \
     $(BUILD_DIR)/golden_operator.o \
+    $(BUILD_DIR)/lindblad.o \
+    $(BUILD_DIR)/quantum_laser.o \
+    $(BUILD_DIR)/ql_bridge.o \
+    $(BUILD_DIR)/quantum_program.o \
     $(BUILD_DIR)/vga_holographic.o \
     $(BUILD_DIR)/bayesian_serial.o
 
@@ -172,6 +182,31 @@ $(BUILD_DIR)/kernel_main.o: $(KERNEL_DIR)/kernel_main.c
 $(BUILD_DIR)/golden_operator.o: $(KERNEL_DIR)/golden_operator.c
 	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling golden_operator.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/lindblad.o: $(KERNEL_DIR)/lindblad.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling lindblad.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/quantum_laser.o: $(KERNEL_DIR)/quantum_laser.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling quantum_laser.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/ql_bridge.o: $(KERNEL_DIR)/ql_bridge.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling ql_bridge.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(QL_C): $(QL_SRC) ql/smopsys_ql.py
+	@mkdir -p $(BUILD_DIR)
+	@echo "[QL] Compiling $< to $@..."
+	python3 ql/smopsys_ql.py $< $@
+
+$(BUILD_DIR)/quantum_program.o: $(QL_C)
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling quantum_program.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/vga_holographic.o: $(DRIVERS_DIR)/vga_holographic.c

@@ -10,6 +10,7 @@
 #ifndef VGA_HOLOGRAPHIC_H
 #define VGA_HOLOGRAPHIC_H
 
+#include <stdint.h>
 #include <bayesian_serial.h>
 
 /* Dimensiones de pantalla VGA texto */

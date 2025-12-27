@@ -125,3 +125,16 @@ void golden_operator_compute_observables(
     // Centroide z: cos(θ)
     obs->centroid_z = dit_cos_fixed(state->theta);
 }
+
+double golden_fabs(double x) {
+    return x < 0 ? -x : x;
+}
+
+double golden_sqrt(double x) {
+    if (x <= 0) return 0;
+    double res = x;
+    for (int i = 0; i < 10; i++) {
+        res = 0.5 * (res + x / res);
+    }
+    return res;
+}

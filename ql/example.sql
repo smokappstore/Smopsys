@@ -1,0 +1,9 @@
+// Programa de comunicación cuántica
+PULSE 1550nm 100ns H;
+WAIT 50ns;
+MEASURE q0;
+BROADCAST "QUANTUM_HELLO";
+THERMAL 0x10000 0.7;
+SYNC 3.14159;
+PULSE 405nm 200ns V;
+WAIT 100ns;
