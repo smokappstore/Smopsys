@@ -104,29 +104,54 @@ def run_iron_dome():
                 # Manual Control Processing
                 cmd = ctrl.get_next_command()
                 if cmd:
-                    if cmd == 'q':
-                        break
-                    elif cmd == 'r':
-                        # Recalibrate
-                        monitor.add_event("SYSTEM", "Recalibrating", "User forced recalibration")
-                        cal_start = time.time()
-                        while not calibration.is_calibrated(time.time(), cal_start):
-                            audio_data = np.random.randn(1024) * 0.1
-                            features_cal = acoustic.analyze_audio_chunk(audio_data)
-                            calibration.add_sample(features_cal)
-                            time.sleep(0.01)
-                        baseline = calibration.finalize()
-                        decision.set_baseline(baseline)
-                    elif cmd == 'a':
-                        # Manual Alert
-                        eval_result['alert'] = True
-                        eval_result['reason'] = "MANUAL OVERRIDE: Alert Triggered"
-                        eval_result['threat_level'] = 1.0
-                    elif cmd == 's':
-                        # Silence / Reset
-                        silenced = not silenced
-                        msg = "System Silenced" if silenced else "System Unsilenced"
-                        monitor.add_event("SYSTEM", "Mode Change", msg)
+                    if monitor.mode == "BIOS":
+                        if cmd == ctrl.TAB or cmd == ctrl.ESC:
+                            monitor.mode = "MONITOR"
+                        elif cmd == ctrl.UP:
+                            monitor.bios_selection = (monitor.bios_selection - 1) % len(monitor.bios_options)
+                        elif cmd == ctrl.DOWN:
+                            monitor.bios_selection = (monitor.bios_selection + 1) % len(monitor.bios_options)
+                        elif cmd == ctrl.ENTER:
+                            choice = monitor.bios_options[monitor.bios_selection]
+                            if choice == "Exit BIOS":
+                                monitor.mode = "MONITOR"
+                            elif choice == "Recalibrate Core":
+                                monitor.add_event("SYSTEM", "Recalibrating", "BIOS Force Recalibration")
+                                # Fast recalibration
+                                cal_start = time.time()
+                                while not calibration.is_calibrated(time.time(), cal_start):
+                                    calibration.add_sample(acoustic.analyze_audio_chunk(np.random.randn(1024)*0.1))
+                                    time.sleep(0.01)
+                                decision.set_baseline(calibration.finalize())
+                            elif choice == "Alert Silence Mode":
+                                silenced = not silenced
+                                monitor.add_event("SYSTEM", "BIOS Update", f"Alerts: {'OFF' if silenced else 'ON'}")
+                    else:
+                        if cmd == 'q':
+                            break
+                        elif cmd == 'r':
+                            # Recalibrate
+                            monitor.add_event("SYSTEM", "Recalibrating", "User forced recalibration")
+                            cal_start = time.time()
+                            while not calibration.is_calibrated(time.time(), cal_start):
+                                audio_data = np.random.randn(1024) * 0.1
+                                features_cal = acoustic.analyze_audio_chunk(audio_data)
+                                calibration.add_sample(features_cal)
+                                time.sleep(0.01)
+                            baseline = calibration.finalize()
+                            decision.set_baseline(baseline)
+                        elif cmd == 'a':
+                            # Manual Alert
+                            eval_result['alert'] = True
+                            eval_result['reason'] = "MANUAL OVERRIDE: Alert Triggered"
+                            eval_result['threat_level'] = 1.0
+                        elif cmd == ctrl.TAB:
+                            monitor.mode = "BIOS"
+                        elif cmd == 's':
+                            # Silence / Reset
+                            silenced = not silenced
+                            msg = "System Silenced" if silenced else "System Unsilenced"
+                            monitor.add_event("SYSTEM", "Mode Change", msg)
 
                 if silenced:
                     eval_result['alert'] = False
