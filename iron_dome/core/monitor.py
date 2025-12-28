@@ -74,8 +74,8 @@ class IronDomeMonitor:
         
         style = "white on blue" if self.mode == "BIOS" else "default"
         grid.add_row(
-            "🛡️  [bold cyan]" + title,
-            "[bold white]METRIPLECTIC SURVEILLANCE[/bold]",
+            "🛡️  [bold cyan]" + title + "[/]",
+            "[bold white]METRIPLECTIC SURVEILLANCE[/]",
             f"Uptime: [yellow]{uptime}[/]"
         )
         return Panel(grid, style=style)
@@ -96,12 +96,12 @@ class IronDomeMonitor:
         table.add_column(style="cyan")
         table.add_column(style="magenta")
         
-        table.add_row("[bold white]Metriplectic Health[/bold white]", "")
+        table.add_row("[bold white]Metriplectic Health[/]", "")
         table.add_row("  H (Symp):", f"{d.get('H', 0):.2f}")
         table.add_row("  S (Metr):", f"{d.get('S', 0):.2f}")
         table.add_row("  Entropy:", f"{d.get('entropy', 0):.2f}")
         table.add_row("", "")
-        table.add_row("[bold white]Security[/bold white]", "")
+        table.add_row("[bold white]Security[/]", "")
         table.add_row("  True Positives:", f"[green]{s.get('TP', 0)}[/green]")
         table.add_row("  False Positives:", f"[red]{s.get('FP', 0)}[/red]")
         table.add_row("  True Negatives:", f"[blue]{s.get('TN', 0)}[/blue]")

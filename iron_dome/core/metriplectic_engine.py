@@ -5,7 +5,6 @@ Follows "El Mandato Metriplético" (Core Physics)
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 from iron_dome.config import PHI, MetriplecticConfig
 
 class MetriplecticSystem:
@@ -14,7 +13,9 @@ class MetriplecticSystem:
         self.psi = np.random.randn(dim) + 1j * np.random.randn(dim)
         self.psi /= np.linalg.norm(self.psi)
         self.rho = np.outer(self.psi, self.psi.conj())
-        self.v = np.zeros(dim)
+        self.gamma = MetriplecticConfig.S_SCALE # Dissipation strength
+        self.last_symp_mag = 0.0
+        self.last_metr_mag = 0.0
         
     def golden_operator(self, n):
         """Regla 2.1: Fondo Estructurado (Operador Áureo)"""
@@ -22,9 +23,7 @@ class MetriplecticSystem:
 
     def compute_lagrangian(self, H, S):
         """Regla 3.1: Lagrangiano Explícito"""
-        # L_symp generates conservative motion (Reversible)
         L_symp = H
-        # L_metr generates relaxation towards an attractor (Dissipative)
         L_metr = S
         return L_symp, L_metr
 
@@ -38,34 +37,51 @@ class MetriplecticSystem:
         # Rule 1.3: Prohibición de Singularidades
         s_norm = np.linalg.norm(S)
         if s_norm < MetriplecticConfig.MIN_DISSIPATION:
-            # Inject minimal dissipation to prevent numerical explosion
             S = S + np.eye(self.dim) * MetriplecticConfig.MIN_DISSIPATION
             
-        # Rule 3.3: Visualización Diagnóstica (Internal tracking)
-        # Tracking after rule 1.3 check to reflect minimal dissipation
         self.last_symp_mag = np.linalg.norm(H)
         self.last_metr_mag = np.linalg.norm(S)
             
-        # Simplificatic integration for demonstration
-        # Heisenberg/Schrodinger like for H (Symplectic)
-        # Gradient flow like for S (Metric)
+        # 1. Symplectic Component (Conservative)
+        # d_symp = -i[H, rho]
+        comm_h = -1j * (H @ self.rho - self.rho @ H)
         
-        # Hamiltonian update (Unitary-ish)
-        dH = -1j * (H @ self.rho - self.rho @ H)
+        # 2. Metric Component (Dissipative)
+        # d_metr = -[S, [S, rho]] (Simplified metric bracket)
+        # Or more simply for relaxation: -(S*rho + rho*S - 2*Tr(S*rho)*rho)
+        # We'll use the anti-commutator form for stability
+        comm_s = (S @ self.rho + self.rho @ S - 2 * np.trace(self.rho @ S) * self.rho)
         
-        # Entropy update (Dissipative)
-        dS = -(S @ self.rho + self.rho @ S - 2 * np.trace(self.rho @ S) * self.rho)
+        # Total evolution with Golden Operator modulation
+        d_rho = (comm_h - self.gamma * comm_s) * (1 + 0.1 * O_n)
         
-        # Structural vacuum modulation
-        self.rho += (MetriplecticConfig.H_SCALE * dH + MetriplecticConfig.S_SCALE * dS) * dt * (1 + O_n)
+        # Euler Step
+        self.rho += d_rho * dt
         
-        # Re-normalize to preserve probability (Rule 1.1)
-        self.rho /= np.trace(self.rho)
+        # Stability: Ensure Hermitian and Trace-1
+        self.rho = (self.rho + self.rho.conj().T) / 2.0
+        tr = np.trace(self.rho).real
+        if tr < 1e-10 or np.isnan(tr):
+            self.rho = np.eye(self.dim, dtype=complex) / float(self.dim)
+        else:
+            self.rho /= tr
         
     def get_diagnostics(self):
+        # Von Neumann Entropy: S = -sum(p_i * log(p_i))
+        try:
+            eigvals = np.linalg.eigvalsh(self.rho)
+            eigvals = np.maximum(eigvals, 1e-12) # Numerical floor
+            entropy = -np.sum(eigvals * np.log(eigvals))
+            purity = np.sum(eigvals**2)
+        except:
+            entropy = 0.0
+            purity = 1.0
+            
         return {
             "symp_mag": self.last_symp_mag,
             "metr_mag": self.last_metr_mag,
-            "entropy": -np.real(np.trace(self.rho @ np.log(self.rho + 1e-12))),
-            "purity": np.real(np.trace(self.rho @ self.rho))
+            "entropy": float(np.real(entropy)),
+            "purity": float(np.real(purity)),
+            "H": self.last_symp_mag,
+            "S": self.last_metr_mag
         }
