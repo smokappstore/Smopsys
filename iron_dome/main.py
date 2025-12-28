@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Iron Dome: Main System Loop
+Iron Dome: Main System Loop with TUI Dashboard
 """
 
 import numpy as np
@@ -15,11 +15,10 @@ from iron_dome.sensors.vision_processor import VisionProcessor
 from iron_dome.core.decision_engine import DecisionEngine
 from iron_dome.core.calibration import CalibrationManager
 from iron_dome.core.stat_tracker import StatTracker
+from iron_dome.core.monitor import IronDomeMonitor
 from iron_dome.config import PHI, MetriplecticConfig
 
 def run_iron_dome():
-    print("🛡️  Iniciando Domo de Hierro Metripléptico...")
-    
     # Initialize components
     engine = MetriplecticSystem(dim=4) 
     acoustic = AcousticProcessor(system_type="H2")
@@ -27,138 +26,127 @@ def run_iron_dome():
     vision = VisionProcessor()
     decision = DecisionEngine()
     stats = StatTracker()
+    monitor = IronDomeMonitor()
     
-    # Visualization setup
-    plt.ion()
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
-    
+    # Background Visualization lists
     symp_vals = []
     metr_vals = []
-    times = []
+    threat_vals = []
+    time_vals = []
     
-    # Calibration Phase
+    # 1. Calibration Phase (Minimal console output before TUI)
+    print("🛡️  Iniciando Domo de Hierro Metripléptico...")
     print("📡 Fase de Calibración: Registrando Ruido Blanco (5s)...")
     calibration = CalibrationManager(calibration_duration=5.0)
     cal_start = time.time()
     
     while not calibration.is_calibrated(time.time(), cal_start):
-        audio_data = np.random.randn(1024) * 0.1 # Real ambient noise simulation
+        audio_data = np.random.randn(1024) * 0.1
         features = acoustic.analyze_audio_chunk(audio_data)
         calibration.add_sample(features)
         time.sleep(0.1)
         
     baseline = calibration.finalize()
     decision.set_baseline(baseline)
-    print(f"✅ Calibración Completada. Baseline RMS: {baseline['rms_baseline']:.4f}")
-    
-    # Main loop setup
+    print(f"✅ Calibración Completada. Entrando en modo Monitor...")
+    time.sleep(1)
+
+    # 2. Main Monitoring Loop with TUI
     start_time = time.time()
     n = 0
     
-    try:
-        while True:
-            # 1. Simulate audio data (In real IoT, this is mic input)
-            elapsed = time.time() - start_time
-            
-            # Simulate different scenarios based on time
-            scenario = int(elapsed) % 40
-            
-            if scenario < 10:
-                # Baseline
-                audio_data = np.random.randn(1024) * 0.1
-                mode_str = "Fondo (Calm)"
-            elif scenario < 20:
-                # Drone (Harmonic 1kHz - 4kHz)
-                t_arr = np.linspace(0, 1024/44100, 1024)
-                audio_data = 0.6 * np.sin(2 * np.pi * 2500 * t_arr) + np.random.randn(1024) * 0.05
-                mode_str = "Intrusión: Drone"
-            elif scenario < 30:
-                # Bird (High freq, high bandwidth)
-                t_arr = np.linspace(0, 1024/44100, 1024)
-                audio_data = 0.4 * np.sin(2 * np.pi * 5000 * t_arr * (1 + 0.5 * np.sin(100 * t_arr)))
-                mode_str = "Ambiente: Ave"
-            else:
-                # Cat (Low freq steps)
-                t_arr = np.linspace(0, 1024/44100, 1024)
-                audio_data = 0.3 * np.sin(2 * np.pi * 150 * t_arr) + np.random.randn(1024) * 0.1
-                mode_str = "Movimiento: Gato"
+    with monitor.start_live() as live:
+        try:
+            while True:
+                elapsed = time.time() - start_time
                 
-            # 2. Process acoustics to Hamiltonian
-            features = acoustic.analyze_audio_chunk(audio_data)
-            features.timestamp = elapsed
-            H = acoustic.get_hamiltonian(features)
-            
-            # 3. Define Entropy Potential S (related to stability)
-            # S is high if the signal is non-harmonic (Rule 1.2)
-            S = np.eye(H.shape[0]) * (1.0 - features.harmonicity)
-            
-            # 4. Engine step
-            engine.step(H, S, dt=0.05, n=n)
-            diagnostics = engine.get_diagnostics()
-            
-            # 5. Multi-Layer Evaluation
-            eval_result = decision.evaluate(diagnostics, features)
-            
-            # 6. Sensor Confirmation Handoff
-            if eval_result['state'] == "Acoustic Detection":
-                # Trigger Layer 2: Motion
-                confirmed, coords = motion.confirm_movement(features)
-                if confirmed:
-                    # Simulation update of state (normally set by DecisionEngine but here we handle the handoff)
-                    eval_result['state'] = "Motion Confirmation"
-                    # Trigger Layer 3: Vision (only for significant threats or persistent cats/birds)
-                    vision_log = vision.start_tracking(eval_result['target_type'], coords)
-                    eval_result['state'] = "Vision Tracking"
-                    eval_result['vision_log'] = vision_log
-            
-            # Log results in StatTracker
-            stats.log_event(eval_result['target_type'], eval_result)
-            
-            # 7. Logging and Output
-            print(f"[{elapsed:.1f}s] {mode_str} | {eval_result['target_type']} | State: {eval_result['state']} | Re_psi: {eval_result['re_psi']:.2f}")
-            if eval_result['alert']:
-                print(f"🚨 ALERT: {eval_result['reason']}")
-            elif "Animal" in eval_result['target_type'] or "Bird" in eval_result['target_type']:
-                print(f"ℹ️  Info: {eval_result['reason']}")
+                # Simulate Scenarios (Cycle every 40s)
+                scenario_cycle = int(elapsed) % 40
+                if scenario_cycle < 10:
+                    # Calm
+                    t_arr = np.linspace(0, 1024/44100, 1024)
+                    audio_data = np.random.randn(1024) * 0.05
+                    target_label = "Fondo (Calm)"
+                elif scenario_cycle < 20:
+                    # Drone
+                    t_arr = np.linspace(0, 1024/44100, 1024)
+                    audio_data = 0.7 * np.sin(2 * np.pi * 3000 * t_arr) + np.random.randn(1024) * 0.1
+                    target_label = "Intrusión: Drone"
+                elif scenario_cycle < 30:
+                    # Bird
+                    t_arr = np.linspace(0, 1024/44100, 1024)
+                    audio_data = 0.5 * np.sin(2 * np.pi * 5000 * t_arr) + np.random.randn(1024) * 0.2
+                    target_label = "Ambiente: Ave"
+                else:
+                    # Cat
+                    t_arr = np.linspace(0, 1024/44100, 1024)
+                    audio_data = 0.4 * np.sin(2 * np.pi * 180 * t_arr) + np.random.randn(1024) * 0.1
+                    target_label = "Movimiento: Gato"
 
-            # Summary stats every 40s
-            if int(elapsed) > 0 and int(elapsed) % 40 == 39:
-                print("\n📊 --- RESUMEN DE SEGURIDAD (Layer Statistics) ---")
-                summary = stats.get_summary()
-                print(f"Accuracy: {summary['Accuracy']} | TP: {summary['Stats']['TP']} | FP: {summary['Stats']['FP']} | TN: {summary['Stats']['TN']}")
-                print("--------------------------------------------------\n")
-            
-            # 7. Visualization Update
-            symp_vals.append(diagnostics['symp_mag'])
-            metr_vals.append(diagnostics['metr_mag'])
-            times.append(elapsed)
-            
-            if len(times) > 50:
-                times = times[-50:]
-                symp_vals = symp_vals[-50:]
-                metr_vals = metr_vals[-50:]
+                # Process Layer 1: Acoustic
+                features = acoustic.analyze_audio_chunk(audio_data)
+                features.timestamp = elapsed
                 
-            ax1.clear()
-            ax1.plot(times, symp_vals, 'b-', label='Conservative (H)')
-            ax1.plot(times, metr_vals, 'r-', label='Dissipative (S)')
+                # Update Metriplectic Dynamics
+                H = acoustic.get_hamiltonian(features)
+                S = np.eye(H.shape[0]) * (1.0 - features.harmonicity)
+                
+                engine.step(H, S, dt=0.05, n=n)
+                diagnostics = engine.get_diagnostics()
+                
+                # Evaluate Decision engine
+                eval_result = decision.evaluate(diagnostics, features)
+                
+                # Layer 2 & 3: Motion & Vision Handoff
+                if eval_result['state'] == "Acoustic Detection":
+                    confirmed, coords = motion.confirm_movement(features)
+                    if confirmed:
+                        eval_result['state'] = "Motion Confirmation"
+                        vision_log = vision.start_tracking(eval_result['target_type'], coords)
+                        eval_result['state'] = "Vision Tracking"
+                
+                # Track statistics
+                stats.log_event(eval_result['target_type'], eval_result)
+                
+                # Update TUI
+                log_msg = eval_result['reason'] if eval_result['alert'] else f"Monitoring {target_label}"
+                monitor.add_event(eval_result['target_type'], eval_result['state'], log_msg)
+                
+                stats_summary = stats.get_summary()
+                monitor.update_view(diagnostics, stats_summary, eval_result.get('threat_level', 0))
+                
+                # Background plot update
+                symp_vals.append(diagnostics['symp_mag'])
+                metr_vals.append(diagnostics['metr_mag'])
+                threat_vals.append(eval_result.get('threat_level', 0))
+                time_vals.append(elapsed)
+                
+                if len(time_vals) > 50:
+                    symp_vals.pop(0)
+                    metr_vals.pop(0)
+                    threat_vals.pop(0)
+                    time_vals.pop(0)
+                
+                n += 1
+                time.sleep(0.1)
+
+        except KeyboardInterrupt:
+            pass
+        finally:
+            # Save final background plot
+            plt.clf()
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+            ax1.plot(time_vals, symp_vals, 'b-', label='Conservative (H)')
+            ax1.plot(time_vals, metr_vals, 'r-', label='Dissipative (S)')
             ax1.set_title("Competencia Metripléptica (H vs S)")
             ax1.legend()
             
-            ax2.clear()
-            ax2.plot(times, [eval_result['threat_level'] for _ in range(len(times))], 'g-')
+            ax2.plot(time_vals, threat_vals, 'g-')
             ax2.set_ylim(-0.1, 1.1)
-            ax2.set_title("Threat Level")
+            ax2.set_title("Threat Level Historical")
             
-            plt.pause(0.1)
-            n += 0.1
-            
-    except KeyboardInterrupt:
-        print("\n🛑 Sistema detenido por el usuario.")
-    finally:
-        plt.ioff()
-        output_path = "/home/jako/smopsys/Smopsys/iron_dome/diagnostics.png"
-        plt.savefig(output_path)
-        print(f"📊 Gráfica diagnóstica guardada en: {output_path}")
+            output_path = "/home/jako/smopsys/Smopsys/iron_dome/diagnostics.png"
+            plt.savefig(output_path)
 
 if __name__ == "__main__":
     run_iron_dome()
