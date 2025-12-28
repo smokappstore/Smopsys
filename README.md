@@ -53,7 +53,8 @@ Sistema de seguridad preventiva para el hogar basado en dinámica metripléptica
 #### 7. [Interactive Control System](file:///home/jako/smopsys/Smopsys/iron_dome/core/control.py)
 Interfaz de control en tiempo real mediante terminal raw.
 - **Hotkeys**: `q` (Quit), `r` (Recalibrate), `a` (Manual Alert), `s` (Silence).
-- **Control Reactivo**: Permite intervenir en la toma de decisiones del domo sin reiniciar el núcleo metripléptico.
+- **BIOS/UEFI Mode**: Tecla `TAB` para acceder a una utilidad de configuración azul (BIOS style) en tiempo real.
+- **Control Reactivo**: Permite intervenir en la toma de decisiones del domo y tunear parámetros sin reiniciar el núcleo metripléptico.
 
 
 ## 🛠 Arquitectura
