@@ -59,7 +59,8 @@ static double exp(double x) {
 // CONSTANTES FÍSICAS
 // ============================================================
 
-#define PHI 0.18                    // Razón áurea conjugada
+#define PHI 1.61803398875           // Razón áurea (Regla 2.1)
+
 #define THERMAL_BATH_TEMP 300.0     // Temperatura baño (unidades arbitrarias)
 #define VISCOSITY_BASE 0.1          // η₀ (viscosidad basal)
 #define MAX_MEMORY_PAGES 256        // Max páginas: 256 × 4KB = 1MB
@@ -87,7 +88,10 @@ typedef struct {
     double entropy;             // Entropía local S_BH = (Area/4)
     double thermal_viscosity;   // η(θ) acoplada al baño
     uint32_t allocation_time;   // Timestamp asignación
+    double L_symp;              // Componente conservativa (Regla 3.1)
+    double L_metr;              // Componente disipativa (Regla 3.1)
 } MetripleticPage;
+
 
 // ============================================================
 // ESTRUCTURA: Gestor de memoria global
@@ -176,15 +180,13 @@ double compute_thermal_viscosity(double theta) {
 
 double compute_O_n_for_page(uint32_t page_idx) {
     /*
-     * Ô_n = n · (-1)^n · cos(πφn)
-     * donde n = page_idx (cada página es un "paso temporal")
+     * Ô_n = cos(π n) · cos(π φ n) (Regla 2.1)
+     * donde n = page_idx + 1
      */
-    
-    double phase = M_PI * PHI * page_idx;
-    double parity = (page_idx & 1) ? -1.0 : 1.0;
-    
-    return page_idx * parity * cos(phase);
+    double n = (double)page_idx + 1.0;
+    return cos(M_PI * n) * cos(M_PI * PHI * n);
 }
+
 
 // ============================================================
 // PASO 4: Proyección dimensional (estado de la página)
@@ -253,8 +255,28 @@ void update_inverted_geometry(void) {
 }
 
 // ============================================================
-// PASO 6: Dinámica metriplética de la página
+// PASO 6: Lagrangiano Explícito (Regla 3.1)
 // ============================================================
+
+void compute_lagrangian(uint32_t page_idx, double *L_symp, double *L_metr) {
+    MetripleticPage *page = &memmgr.pages[page_idx];
+    
+    // L_symp: Dinámica Hamiltoniana (reversible)
+    // dθ_Ham/dt = (π/2) · sin(2θ) · O_n / N
+    *L_symp = (M_PI / 2.0) * sin(2.0 * page->theta) * 
+              page->O_n / (memmgr.total_pages + 1);
+    
+    // L_metr: Dinámica Disipativa (irreversible)
+    // dθ_Diss/dt = η(θ) · (θ_eq - θ)
+    double eta = compute_thermal_viscosity(page->theta);
+    double theta_eq = M_PI;
+    *L_metr = eta * (theta_eq - page->theta) * 0.01;
+}
+
+// ============================================================
+// PASO 7: Dinámica metriplética de la página
+// ============================================================
+
 
 void metripletic_page_evolution(uint32_t page_idx, uint32_t timestep) {
     /*
@@ -274,17 +296,12 @@ void metripletic_page_evolution(uint32_t page_idx, uint32_t timestep) {
     // Operador actualizado
     page->O_n = compute_O_n_for_page(page_idx);
     
-    // Parte Hamiltoniana (reversible)
-    double dtheta_ham = (M_PI / 2.0) * sin(2.0 * page->theta) * 
-                        page->O_n / (memmgr.total_pages + 1);
+    // Calcular Lagrangianos explícitos (Regla 3.1)
+    compute_lagrangian(page_idx, &page->L_symp, &page->L_metr);
     
-    // Parte disipativa (viscosidad del baño)
-    double eta = compute_thermal_viscosity(page->theta);
-    double theta_eq = M_PI; // Equilibrio termodinámico en el ecuador
-    double dtheta_diss = eta * (theta_eq - page->theta) * 0.01; // Amortiguamiento
-    
-    // Evolución total
-    page->theta += dtheta_ham + dtheta_diss;
+    // Evolución total: dθ/dt = L_symp + L_metr
+    page->theta += page->L_symp + page->L_metr;
+
     
     // Mantener en [0, 2π]
     if (page->theta < 0.0) page->theta += 2.0 * M_PI;
@@ -297,14 +314,17 @@ void metripletic_page_evolution(uint32_t page_idx, uint32_t timestep) {
     page->entropy = (fabs(sin(page->theta)) + 0.1) / 4.0;
     
     // Viscosidad local
-    page->thermal_viscosity = eta;
+    page->thermal_viscosity = compute_thermal_viscosity(page->theta);
 }
+
 
 // ============================================================
 // API PÚBLICA: Asignar memoria
 // ============================================================
 
-uint32_t memory_allocate(uint32_t size) {
+extern "C" {
+    uint32_t memory_allocate(uint32_t size) {
+
     /*
      * Buscar página libre (EMPTY) con θ mínima
      * Asignar en modo MEM_ALLOCATED
@@ -328,23 +348,28 @@ uint32_t memory_allocate(uint32_t size) {
     }
     
     // Inicializar página
-    memmgr.pages[best_idx].address = MEMORY_BASE + (best_idx * PAGE_SIZE);
-    memmgr.pages[best_idx].size = (size > PAGE_SIZE) ? PAGE_SIZE : size;
-    memmgr.pages[best_idx].theta = 0.1; // Empezar en polo norte
-    memmgr.pages[best_idx].O_n = compute_O_n_for_page(best_idx);
-    memmgr.pages[best_idx].state = MEM_ALLOCATED;
-    memmgr.pages[best_idx].allocation_time = 0;
+memmgr.pages[best_idx].address = MEMORY_BASE + (best_idx * PAGE_SIZE);
+memmgr.pages[best_idx].size = (size > PAGE_SIZE) ? PAGE_SIZE : size;
+memmgr.pages[best_idx].theta = 0.01; // Pequeña perturbación para romper simetría (Regla 1.3)
+memmgr.pages[best_idx].O_n = compute_O_n_for_page(best_idx);
+memmgr.pages[best_idx].state = MEM_ALLOCATED;
+memmgr.pages[best_idx].allocation_time = 0;
+
     
     memmgr.allocated_pages++;
     
     return memmgr.pages[best_idx].address;
+    }
 }
+
 
 // ============================================================
 // API PÚBLICA: Liberar memoria
 // ============================================================
 
-void memory_free(uint32_t address) {
+extern "C" {
+    void memory_free(uint32_t address) {
+
     /*
      * Buscar página con dirección
      * Establecer state = MEM_EVAPORATING
@@ -358,13 +383,17 @@ void memory_free(uint32_t address) {
             return;
         }
     }
+    }
 }
+
 
 // ============================================================
 // API PÚBLICA: Paso temporal del sistema
 // ============================================================
 
-void memory_timestep(uint32_t global_time) {
+extern "C" {
+    void memory_timestep(uint32_t global_time) {
+
     /*
      * Evolucionar TODAS las páginas metriplécticametne
      * Actualizar centroides
@@ -408,7 +437,9 @@ void memory_timestep(uint32_t global_time) {
     
     // Actualizar métrica invertida
     update_inverted_geometry();
+    }
 }
+
 
 // ============================================================
 // DIAGNÓSTICO: Mostrar estado de memoria
@@ -435,11 +466,27 @@ extern "C" {
         *out_entropy = 0.0;
         *out_critical = 0;
     }
+}
+// ============================================================
+// BRIDGE C: Funciones para el kernel C
+// ============================================================
 
-    uint32_t memory_get_used_pages(void) { return memmgr.allocated_pages; }
-    uint32_t memory_get_total_pages(void) { return memmgr.total_pages; }
-    double memory_get_centroid_z(void) { return memmgr.centroid_z; }
-    double memory_get_total_entropy(void) { return memmgr.total_entropy; }
+extern "C" {
+    uint32_t memory_get_used_pages(void) {
+        return memmgr.allocated_pages;
+    }
+
+    uint32_t memory_get_total_pages(void) {
+        return memmgr.total_pages;
+    }
+
+    double memory_get_centroid_z(void) {
+        return memmgr.centroid_z;
+    }
+
+    double memory_get_total_entropy(void) {
+        return memmgr.total_entropy;
+    }
 
     int memory_get_page_stats(uint32_t idx, uint32_t *addr, double *theta, int *state) {
         if (idx >= memmgr.total_pages) return 0;
@@ -448,13 +495,37 @@ extern "C" {
         *state = (int)memmgr.pages[idx].state;
         return 1;
     }
+
+    void memory_get_lagrangian(uint32_t page_idx, double *L_symp, double *L_metr) {
+        if (page_idx < memmgr.total_pages) {
+            *L_symp = memmgr.pages[page_idx].L_symp;
+            *L_metr = memmgr.pages[page_idx].L_metr;
+        } else {
+            *L_symp = 0.0;
+            *L_metr = 0.0;
+        }
+    }
+
+    double memory_get_page_theta(uint32_t idx) {
+        if (idx < memmgr.total_pages) return memmgr.pages[idx].theta;
+        return -1.0;
+    }
+
+    double memory_get_page_on(uint32_t idx) {
+        if (idx < memmgr.total_pages) return memmgr.pages[idx].O_n;
+        return 0.0;
+    }
 }
+
+
 
 // ============================================================
 // INICIALIZACIÓN
 // ============================================================
 
-void memory_init(void) {
+extern "C" {
+    void memory_init(void) {
+
     memset(&memmgr, 0, sizeof(MemoryManager));
     memmgr.total_pages = MAX_MEMORY_PAGES;
     memmgr.allocated_pages = 0;
@@ -466,4 +537,6 @@ void memory_init(void) {
         memmgr.pages[i].state = MEM_EMPTY;
         memmgr.pages[i].O_n = 0.0;
     }
+    }
 }
+

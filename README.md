@@ -30,6 +30,13 @@ Lenguaje de nivel medio para el control de pulsos cuánticos y sincronización d
 - **Sintaxis**: `PULSE`, `WAIT`, `MEASURE`, `ENTANGLE`, `BROADCAST`, `THERMAL`, `SYNC`.
 - **Compilación**: El motor QL traduce los scripts `.sql` a código C que se enlaza directamente con el kernel.
 
+#### 6. [BiMOtype Protocol](file:///home/jako/smopsys/Smopsys/ql/bimotype.py)
+Protocolo de comunicación cuántica-radiactiva mediante pulsos Laser-Morse.
+- **Codificación**: Traduce texto a estados cuánticos y secuencias de pulsos.
+- **Hawking Radiation**: Las firmas radiactivas son opcionales y se vinculan a la entropía de las páginas de memoria, emulando la evaporación de agujeros negros.
+- **Kernel Pulse**: Implementación en `bimotype.cpp` para el parpadeo visual y serial de mensajes.
+
+
 #### 5. [Memory Manager](file:///home/jako/smopsys/Smopsys/MemoryManager.cpp)
 Gestor de memoria con acoplamiento termodinámico.
 - **Centroide Z-Finch**: Monitorea el confinamiento de la información en las páginas.
@@ -47,8 +54,12 @@ graph TD
     E --> G[Visual Output: VGA]
     D --> F[Lindblad Dynamics]
     D --> I[Panic System: Entropy Sink]
+    D --> J[BiMOtype: Laser-Morse]
     E --> G[Visual Output: VGA]
     F --> H[I/O: Bayesian Serial]
+    J --> G
+    J --> H
+
 ```
 
 ## ⌨️ Shell y Diagnósticos
@@ -59,6 +70,9 @@ El sistema cuenta con un shell interactivo (`ql-bias>`) para monitorear el coraz
 - `ticks`: Contador de latidos de hardware (PIT).
 - `laser`: Estado de la retroalimentación del sistema de pulsos.
 - `panic`: (Prueba) Dispara manualmente una singularidad de entropía.
+- `competition`: Muestra la lucha termodinámica ($L_{symp}$ vs $L_{metr}$) de una página.
+- `bimotype <msg>`: Emite un mensaje pulsado usando el protocolo Laser-Morse.
+
 
 
 ## 📐 El Mandato Metripléctico

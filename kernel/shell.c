@@ -19,6 +19,8 @@ double memory_get_centroid_z(void);
 double memory_get_total_entropy(void);
 
 int memory_get_page_stats(uint32_t idx, uint32_t *addr, double *theta, int *state);
+void memory_get_lagrangian(uint32_t page_idx, double *L_symp, double *L_metr);
+void panic(const char *message);
 
 
 
@@ -37,10 +39,21 @@ static uint32_t strlen(const char *s) {
     return len;
 }
 
+static int strncmp(const char *s1, const char *s2, uint32_t n) {
+    while (n-- > 0 && *s1 && (*s1 == *s2)) {
+        s1++;
+        s2++;
+    }
+    if (n == (uint32_t)-1) return 0; // All n characters matched
+    return *(unsigned char *)s1 - *(unsigned char *)s2;
+}
+
 #define MAX_CMD_LEN 64
 
 static char cmd_buffer[MAX_CMD_LEN];
 static int cmd_ptr = 0;
+
+extern void bimotype_pulse_message(const char* message);
 
 static void shell_prompt(void) {
     vga_holographic_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
@@ -48,8 +61,14 @@ static void shell_prompt(void) {
 }
 
 static void exec_command(const char *cmd) {
+    bayesian_serial_write("[SHELL] Executing: ");
+    bayesian_serial_write(cmd);
+    bayesian_serial_write("\n");
+
     if (strcmp(cmd, "help") == 0) {
-        vga_holographic_write("Commands: status, ticks, memory, pages, laser, clear, help\n");
+
+        vga_holographic_write("Commands: status, ticks, memory, pages, competition, laser, panic, clear, bimotype, help\n");
+
 
     } else if (strcmp(cmd, "clear") == 0) {
         vga_holographic_clear();
@@ -125,7 +144,35 @@ static void exec_command(const char *cmd) {
                 vga_holographic_write_char('\n');
             }
         }
+    } else if (strcmp(cmd, "panic") == 0) {
+        panic("Manual singularity triggered via shell.");
+    } else if (strcmp(cmd, "competition") == 0) {
+        double L_symp, L_metr;
+        memory_get_lagrangian(0, &L_symp, &L_metr); // Check first page
+        
+        vga_holographic_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
+        vga_holographic_write("\n--- LAGRANGIAN COMPETITION (Page 0) ---\n");
+        
+        vga_holographic_set_color(VGA_COLOR_LIGHT_GREEN, VGA_COLOR_BLACK);
+        vga_holographic_write("  L_symp (Ham): ");
+        vga_holographic_write_float(L_symp, 6);
+        
+        vga_holographic_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
+        vga_holographic_write("\n  L_metr (Diss): ");
+        vga_holographic_write_float(L_metr, 6);
+        
+        double ratio = (L_metr != 0) ? (L_symp / L_metr) : 0;
+        vga_holographic_set_color(VGA_COLOR_YELLOW, VGA_COLOR_BLACK);
+        vga_holographic_write("\n  Ratio: ");
+        vga_holographic_write_float(ratio, 4);
+        vga_holographic_write_char('\n');
+    } else if (strcmp(cmd, "bimotype") == 0 || strncmp(cmd, "bimotype ", 9) == 0) {
+        const char *msg = (strlen(cmd) > 9) ? cmd + 9 : "BIMO";
+        bimotype_pulse_message(msg);
     } else if (strlen(cmd) > 0) {
+
+
+
 
 
         vga_holographic_set_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK);
@@ -144,6 +191,17 @@ void shell_start(void) {
     vga_holographic_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
     vga_holographic_write("Smopsys Q-CORE Bias Interface v0.1\n");
     vga_holographic_write("Type 'help' for commands.\n\n");
+    vga_holographic_write("  status  - Show engine state\n");
+    vga_holographic_write("  ticks   - Show system heartbeat ticks\n");
+    vga_holographic_write("  memory  - Show memory manager stats\n");
+    vga_holographic_write("  pages   - List first 15 memory pages\n");
+    vga_holographic_write("  laser   - Show laser status\n");
+    vga_holographic_write("  panic   - Trigger a manual system panic\n");
+    vga_holographic_write("  clear   - Clear the screen\n");
+    vga_holographic_write("  competition - Show Lagrangian competition\n");
+    vga_holographic_write("  bimotype <msg> - Pulse message via BiMOtype\n");
+    vga_holographic_write("  help    - Show this help\n");
+    vga_holographic_write("\n");
     
     shell_prompt();
     

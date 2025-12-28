@@ -107,7 +107,9 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/panic.o \
     $(BUILD_DIR)/interrupt_stubs.o \
     $(BUILD_DIR)/shell.o \
-    $(BUILD_DIR)/MemoryManager.o
+    $(BUILD_DIR)/MemoryManager.o \
+    $(BUILD_DIR)/bimotype.o
+
 
 KERNEL_OBJS = $(KERNEL_ENTRY_OBJ) $(KERNEL_C_OBJS)
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
@@ -256,10 +258,16 @@ $(BUILD_DIR)/idt.o: $(KERNEL_DIR)/idt.c
 	@echo "[CC] Compiling idt.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/panic.o: $(KERNEL_DIR)/panic.c
+build/panic.o: $(KERNEL_DIR)/panic.c
 	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling panic.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/bimotype.o: kernel/bimotype.cpp
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CXX] Compiling bimotype.cpp..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 
 
 $(BUILD_DIR)/metriplectic_heartbeat.o: $(DRIVERS_DIR)/metriplectic_heartbeat.c
@@ -276,9 +284,12 @@ $(BUILD_DIR)/interrupt_stubs.o: $(KERNEL_DIR)/interrupt_stubs.asm
 # TESTS (Host)
 # ============================================================
 
-test: $(TESTS_DIR)/test_golden_operator
+test: $(TESTS_DIR)/test_golden_operator $(TESTS_DIR)/test_memory
 	@echo "[TEST] Running golden operator tests..."
 	./$(TESTS_DIR)/test_golden_operator
+	@echo "[TEST] Running memory manager tests..."
+	./$(TESTS_DIR)/test_memory
+
 
 $(TESTS_DIR)/test_golden_operator: $(TESTS_DIR)/test_golden_operator.c
 	@mkdir -p $(TESTS_DIR)
@@ -286,6 +297,14 @@ $(TESTS_DIR)/test_golden_operator: $(TESTS_DIR)/test_golden_operator.c
 	gcc -Wall -Wextra -g -O0 \
 		-I. -Ikernel -Idrivers \
 		$< -o $@ -lm
+
+$(TESTS_DIR)/test_memory: $(TESTS_DIR)/test_memory.cpp MemoryManager.cpp
+	@mkdir -p $(TESTS_DIR)
+	@echo "[CXX] Compiling test_memory..."
+	g++ -Wall -Wextra -g -O0 \
+		-I. -Ikernel -Idrivers \
+		$^ -o $@ -lm
+
 
 # ============================================================
 # QEMU
@@ -320,6 +339,8 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -f $(OS_IMAGE)
 	rm -f $(TESTS_DIR)/test_golden_operator
+	rm -f $(TESTS_DIR)/test_memory
+
 	@echo "[CLEAN] Done."
 
 info: $(OS_IMAGE)

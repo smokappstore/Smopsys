@@ -2,7 +2,9 @@
 #include "panic.h"
 #include "../drivers/bayesian_serial.h"
 
-extern void metriplectic_heartbeat_handler(void);
+extern void metriplectic_heartbeat_handler();
+extern void bimotype_init();
+extern void bimotype_update(uint32_t delta_ms);
 
 /* Tabla IDT */
 static struct idt_entry idt[256];
@@ -80,21 +82,25 @@ void idt_init(void) {
     __asm__ __volatile__ ("lidt %0" : : "m" (idtp));
     
     bayesian_serial_write("[INIT] IDT and PIC remapped successfully\n");
+    bimotype_init();
 }
+
 
 /* Handler genérico llamado desde los stubs */
 void isr_handler(uint32_t int_no) {
     /* Excepciones de CPU (0-31) */
     if (int_no < 32) {
-        char msg[64] = "CPU Exception: ";
         /* En un kernel más avanzado mapearíamos int_no a nombres de excepción */
         panic("Unhandled CPU Exception");
     }
 
+
     /* IRQ0: Metriplectic Heartbeat */
     if (int_no == 32) {
         metriplectic_heartbeat_handler();
+        bimotype_update(1); // 1ms tick
     }
+
     
     /* Por ahora solo enviamos EOI si es una interrupción física (IRQ) */
 

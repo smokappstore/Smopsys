@@ -24,6 +24,8 @@ class TokenType(Enum):
     BREAK = auto()
     FUNCTION = auto()
     RETURN = auto()
+    BIMOTYPE = auto()
+
     
     # Identificadores y literales
     IDENTIFIER = auto()
@@ -76,7 +78,9 @@ class InstructionType(Enum):
     BROADCAST = auto()
     THERMAL_PAGE = auto()
     SYNC_PHASE = auto()
+    BIMOTYPE_PULSE = auto()
     JUMP = auto()
+
     CONDITIONAL = auto()
     CALL = auto()
 
@@ -158,7 +162,9 @@ class Lexer:
             'BREAK': TokenType.BREAK,
             'FUNCTION': TokenType.FUNCTION,
             'RETURN': TokenType.RETURN,
+            'BIMOTYPE': TokenType.BIMOTYPE,
         }
+
     
     def tokenize(self) -> List[Token]:
         """Tokeniza el código"""
@@ -373,6 +379,9 @@ class Parser:
             return self._parse_thermal()
         elif token.type == TokenType.SYNC:
             return self._parse_sync()
+        elif token.type == TokenType.BIMOTYPE:
+            return self._parse_bimotype()
+
         
         self._advance()
         return None
@@ -467,6 +476,23 @@ class Parser:
             type=InstructionType.SYNC_PHASE,
             operands={'phase': float(phase_token.value)}
         )
+
+    def _parse_bimotype(self) -> Instruction:
+        """BIMOTYPE <string>"""
+        self._consume(TokenType.BIMOTYPE, "Expected BIMOTYPE")
+        message_token = self._consume(TokenType.STRING, "Expected message")
+        self._consume_optional(TokenType.SEMICOLON)
+        
+        from bimotype import LaserMorseSystem
+        bimo = LaserMorseSystem()
+        paquete = bimo.encode_message(message_token.value)
+        
+        return Instruction(
+            type=InstructionType.BIMOTYPE_PULSE,
+            operands={'message': message_token.value},
+            quantum_state={'c_header': bimo.to_c_header(paquete)}
+        )
+
     
     def _parse_time_to_ns(self, time_str: str) -> float:
         """Convierte string de tiempo a nanosegundos"""
