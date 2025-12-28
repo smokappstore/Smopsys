@@ -42,6 +42,14 @@ Gestor de memoria con acoplamiento termodinámico.
 - **Centroide Z-Finch**: Monitorea el confinamiento de la información en las páginas.
 - **Evaporación de Hawking**: Las páginas liberadas entran en un estado de evaporación granular antes de ser marcadas como vacías.
 
+#### 6. [Iron Dome: IoT Security](file:///home/jako/smopsys/Smopsys/iron_dome/main.py)
+Sistema de seguridad preventiva para el hogar basado en dinámica metripléptica.
+- **Multi-Layer Pipeline**: Detección Acústica (Firma) $\rightarrow$ Confirmación de Movimiento $\rightarrow$ Seguimiento por Visión.
+- **Target Identification**: Clasifica objetivos en ramas (Amenazas: Drones/Intrusos; Ambiente: Aves/Gatos/Perros).
+- **Reynolds Informacional ($Re_{\psi}$)**: Utiliza la turbulencia de datos para identificar anomalías cinéticas organizadas.
+- **Calibración Dinámica**: Registro automático de ruido blanco para ajuste de umbrales adaptativos.
+- **StatTracker**: Auditoría de Verdaderos/Falsos Positivos para validación de confiabilidad.
+
 
 ## 🛠 Arquitectura
 ```mermaid
@@ -51,14 +59,15 @@ graph TD
     C --> D{Q-CORE Engine}
     D --> E[Golden Operator Sched]
     D --> F[Lindblad Dynamics]
-    E --> G[Visual Output: VGA]
-    D --> F[Lindblad Dynamics]
     D --> I[Panic System: Entropy Sink]
     D --> J[BiMOtype: Laser-Morse]
+    D --> K[Iron Dome: IoT Security]
     E --> G[Visual Output: VGA]
     F --> H[I/O: Bayesian Serial]
     J --> G
     J --> H
+    K --> L[Sensors: Mic/Motion/Cam]
+    L --> K
 
 ```
 
