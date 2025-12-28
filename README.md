@@ -50,6 +50,11 @@ Sistema de seguridad preventiva para el hogar basado en dinámica metripléptica
 - **Calibración Dinámica**: Registro automático de ruido blanco para ajuste de umbrales adaptativos.
 - **StatTracker**: Auditoría de Verdaderos/Falsos Positivos para validación de confiabilidad.
 
+#### 7. [Interactive Control System](file:///home/jako/smopsys/Smopsys/iron_dome/core/control.py)
+Interfaz de control en tiempo real mediante terminal raw.
+- **Hotkeys**: `q` (Quit), `r` (Recalibrate), `a` (Manual Alert), `s` (Silence).
+- **Control Reactivo**: Permite intervenir en la toma de decisiones del domo sin reiniciar el núcleo metripléptico.
+
 
 ## 🛠 Arquitectura
 ```mermaid

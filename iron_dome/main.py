@@ -16,6 +16,7 @@ from iron_dome.core.decision_engine import DecisionEngine
 from iron_dome.core.calibration import CalibrationManager
 from iron_dome.core.stat_tracker import StatTracker
 from iron_dome.core.monitor import IronDomeMonitor
+from iron_dome.core.control import CommandInterface
 from iron_dome.config import PHI, MetriplecticConfig
 
 def run_iron_dome():
@@ -25,14 +26,15 @@ def run_iron_dome():
     motion = MotionProcessor()
     vision = VisionProcessor()
     decision = DecisionEngine()
-    stats = StatTracker()
-    monitor = IronDomeMonitor()
     
     # Background Visualization lists
     symp_vals = []
     metr_vals = []
     threat_vals = []
     time_vals = []
+    stats = StatTracker()
+    monitor = IronDomeMonitor()
+    ctrl = CommandInterface()
     
     # 1. Calibration Phase (Minimal console output before TUI)
     print("🛡️  Iniciando Domo de Hierro Metripléptico...")
@@ -52,8 +54,10 @@ def run_iron_dome():
     time.sleep(1)
 
     # 2. Main Monitoring Loop with TUI
+    ctrl.start() # Start non-blocking listener
     start_time = time.time()
     n = 0
+    silenced = False
     
     with monitor.start_live() as live:
         try:
@@ -97,6 +101,37 @@ def run_iron_dome():
                 # Evaluate Decision engine
                 eval_result = decision.evaluate(diagnostics, features)
                 
+                # Manual Control Processing
+                cmd = ctrl.get_next_command()
+                if cmd:
+                    if cmd == 'q':
+                        break
+                    elif cmd == 'r':
+                        # Recalibrate
+                        monitor.add_event("SYSTEM", "Recalibrating", "User forced recalibration")
+                        cal_start = time.time()
+                        while not calibration.is_calibrated(time.time(), cal_start):
+                            audio_data = np.random.randn(1024) * 0.1
+                            features_cal = acoustic.analyze_audio_chunk(audio_data)
+                            calibration.add_sample(features_cal)
+                            time.sleep(0.01)
+                        baseline = calibration.finalize()
+                        decision.set_baseline(baseline)
+                    elif cmd == 'a':
+                        # Manual Alert
+                        eval_result['alert'] = True
+                        eval_result['reason'] = "MANUAL OVERRIDE: Alert Triggered"
+                        eval_result['threat_level'] = 1.0
+                    elif cmd == 's':
+                        # Silence / Reset
+                        silenced = not silenced
+                        msg = "System Silenced" if silenced else "System Unsilenced"
+                        monitor.add_event("SYSTEM", "Mode Change", msg)
+
+                if silenced:
+                    eval_result['alert'] = False
+                    eval_result['threat_level'] *= 0.1 # Suppress threat visual
+
                 # Layer 2 & 3: Motion & Vision Handoff
                 if eval_result['state'] == "Acoustic Detection":
                     confirmed, coords = motion.confirm_movement(features)
@@ -133,6 +168,7 @@ def run_iron_dome():
         except KeyboardInterrupt:
             pass
         finally:
+            ctrl.stop()
             # Save final background plot
             plt.clf()
             fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))

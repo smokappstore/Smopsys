@@ -60,6 +60,14 @@ class IronDomeMonitor:
         table.add_row("  True Positives:", f"[green]{s.get('TP', 0)}[/green]")
         table.add_row("  False Positives:", f"[red]{s.get('FP', 0)}[/red]")
         table.add_row("  True Negatives:", f"[blue]{s.get('TN', 0)}[/blue]")
+        table.add_row("", "")
+        
+        # Hotkeys Help
+        table.add_row("[bold white]Controls[/bold white]", "")
+        table.add_row("  [q] ", "Quit System")
+        table.add_row("  [r] ", "Recalibrate")
+        table.add_row("  [a] ", "Manual Alert")
+        table.add_row("  [s] ", "Silence/Reset")
         
         return Panel(table, title="[bold]System Status[/bold]", border_style="cyan")
 
