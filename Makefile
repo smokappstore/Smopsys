@@ -124,7 +124,7 @@ OS_IMAGE = smopsys.bin
 # TARGETS PRINCIPALES
 # ============================================================
 
-.PHONY: all kernel boot test run clean dirs help
+.PHONY: all kernel boot test run clean dirs help run-iron-dome
 
 all: dirs $(OS_IMAGE)
 	@echo "============================================"
@@ -327,6 +327,10 @@ run-debug: $(OS_IMAGE)
 		-d guest_errors \
 		-s -S
 
+run-iron-dome:
+	@echo "[PYTHON] Starting Iron Dome IoT Security System..."
+	PYTHONPATH=. python3 -m iron_dome.main
+
 # ============================================================
 # UTILITIES
 # ============================================================
@@ -368,6 +372,7 @@ help:
 	@echo "  run-debug     - Run in QEMU with GDB remote"
 	@echo "  info          - Show image information"
 	@echo "  clean         - Remove build artifacts"
+	@echo "  run-iron-dome - Run Iron Dome IoT Security System (Python)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make all      # Full build"

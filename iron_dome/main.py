@@ -56,7 +56,7 @@ def run_iron_dome():
     n = 0
     
     try:
-        while time.time() - start_time < 45: # Run for 45s to see full loop
+        while True:
             # 1. Simulate audio data (In real IoT, this is mic input)
             elapsed = time.time() - start_time
             
