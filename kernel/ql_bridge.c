@@ -27,6 +27,8 @@ char *strstr(const char *haystack, const char *needle) {
 /* Calibración aproximada para delay (ajustar según QEMU) */
 #define CYCLES_PER_NS 10
 
+extern LaserParams global_laser_params;
+
 void laser_pulse_emit(const char* wavelength, const char* duration, char polarization) {
     static LindbladSystem sys;
     static CMatrix rho;
@@ -40,8 +42,7 @@ void laser_pulse_emit(const char* wavelength, const char* duration, char polariz
     bayesian_serial_write("\n");
 
     /* Simulación de evolución láser usando quantum_laser.c */
-    LaserParams p;
-    laser_params_default(&p);
+    LaserParams p = global_laser_params;
     
     /* Mapeo simple de strings a parámetros físicos */
     if (strstr(wavelength, "1550")) p.omega_atom = 0.8;

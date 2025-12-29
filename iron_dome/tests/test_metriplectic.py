@@ -35,3 +35,10 @@ def test_golden_operator():
     # n=1: cos(pi) * cos(pi * phi) = -1 * cos(pi * phi)
     expected = np.cos(np.pi) * np.cos(np.pi * (1 + np.sqrt(5))/2)
     assert np.isclose(val, expected)
+
+def test_centroid_z():
+    """Verify centroid_z calculation."""
+    system = MetriplecticSystem(dim=4)
+    diagnostics = system.get_diagnostics()
+    assert 'centroid_z' in diagnostics
+    assert 0.0 <= diagnostics['centroid_z'] <= 1.0

@@ -7,6 +7,10 @@ static volatile uint32_t global_ticks = 0;
 extern GoldenState current_golden_state;
 extern GoldenObservables current_golden_obs;
 
+#include "../kernel/surgical_scheduler.h"
+extern SurgicalState current_surgical_state;
+extern LaserParams global_laser_params;
+
 /* Envía un comando al PIT */
 static void pit_send_command(uint8_t cmd) {
     __asm__ __volatile__ ("outb %0, %1" : : "a"(cmd), "Nd"(PIT_COMMAND));
@@ -25,6 +29,9 @@ void metriplectic_heartbeat_handler(void) {
     /* Nota: Esto desacopla la física de la velocidad de ejecución del shell */
     golden_operator_step(&current_golden_state);
     golden_operator_compute_observables(&current_golden_state, &current_golden_obs);
+    
+    /* Ejecutar Surgical Scheduler (CHECK_CHIRALITY) */
+    surgical_scheduler_step(&current_surgical_state, &current_golden_state, &global_laser_params);
     
     /* Mostrar un log cada 1000 ticks (1 segundo) por serial */
     if (global_ticks % 1000 == 0) {

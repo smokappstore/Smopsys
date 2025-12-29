@@ -90,6 +90,7 @@ KERNEL_C_SRCS = \
     $(KERNEL_DIR)/idt.c \
     $(KERNEL_DIR)/panic.c \
     kernel/shell.c \
+    $(KERNEL_DIR)/surgical_scheduler.c \
     MemoryManager.cpp
 
 KERNEL_C_OBJS = \
@@ -108,7 +109,8 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/interrupt_stubs.o \
     $(BUILD_DIR)/shell.o \
     $(BUILD_DIR)/MemoryManager.o \
-    $(BUILD_DIR)/bimotype.o
+    $(BUILD_DIR)/bimotype.o \
+    $(BUILD_DIR)/surgical_scheduler.o
 
 
 KERNEL_OBJS = $(KERNEL_ENTRY_OBJ) $(KERNEL_C_OBJS)
@@ -268,6 +270,11 @@ $(BUILD_DIR)/bimotype.o: kernel/bimotype.cpp
 	@echo "[CXX] Compiling bimotype.cpp..."
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/surgical_scheduler.o: $(KERNEL_DIR)/surgical_scheduler.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling surgical_scheduler.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
 
 $(BUILD_DIR)/metriplectic_heartbeat.o: $(DRIVERS_DIR)/metriplectic_heartbeat.c
@@ -284,11 +291,13 @@ $(BUILD_DIR)/interrupt_stubs.o: $(KERNEL_DIR)/interrupt_stubs.asm
 # TESTS (Host)
 # ============================================================
 
-test: $(TESTS_DIR)/test_golden_operator $(TESTS_DIR)/test_memory
+test: $(TESTS_DIR)/test_golden_operator $(TESTS_DIR)/test_memory $(TESTS_DIR)/test_surgical_scheduler
 	@echo "[TEST] Running golden operator tests..."
 	./$(TESTS_DIR)/test_golden_operator
 	@echo "[TEST] Running memory manager tests..."
 	./$(TESTS_DIR)/test_memory
+	@echo "[TEST] Running surgical scheduler tests..."
+	./$(TESTS_DIR)/test_surgical_scheduler
 
 
 $(TESTS_DIR)/test_golden_operator: $(TESTS_DIR)/test_golden_operator.c
@@ -302,6 +311,13 @@ $(TESTS_DIR)/test_memory: $(TESTS_DIR)/test_memory.cpp MemoryManager.cpp
 	@mkdir -p $(TESTS_DIR)
 	@echo "[CXX] Compiling test_memory..."
 	g++ -Wall -Wextra -g -O0 \
+		-I. -Ikernel -Idrivers \
+		$^ -o $@ -lm
+
+$(TESTS_DIR)/test_surgical_scheduler: tests/test_surgical_scheduler.c kernel/surgical_scheduler.c
+	@mkdir -p $(TESTS_DIR)
+	@echo "[CC] Compiling test_surgical_scheduler..."
+	gcc -Wall -Wextra -g -O0 \
 		-I. -Ikernel -Idrivers \
 		$^ -o $@ -lm
 

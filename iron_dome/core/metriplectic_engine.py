@@ -77,11 +77,18 @@ class MetriplecticSystem:
             entropy = 0.0
             purity = 1.0
             
+        # Z-Finch: Projection of state on the computational basis (Centroid)
+        # For a normalized system, sum(eig_i * i) / (dim-1)
+        # We'll use a linear ramp for the Z operator diagonal
+        z_op_diag = np.linspace(1.0, 0.0, self.dim)
+        centroid_z = np.sum(eigvals * z_op_diag)
+            
         return {
             "symp_mag": self.last_symp_mag,
             "metr_mag": self.last_metr_mag,
             "entropy": float(np.real(entropy)),
             "purity": float(np.real(purity)),
+            "centroid_z": float(np.real(centroid_z)),
             "H": self.last_symp_mag,
             "S": self.last_metr_mag
         }

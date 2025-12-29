@@ -25,6 +25,11 @@
 GoldenState current_golden_state;
 GoldenObservables current_golden_obs;
 
+/* Surgical Scheduler State */
+#include "surgical_scheduler.h"
+SurgicalState current_surgical_state;
+LaserParams global_laser_params;
+
 /* Forward declarations */
 extern void memory_init(void);
 extern void memory_timestep(uint32_t global_time);
@@ -194,6 +199,10 @@ void kernel_main(void) {
     /* Inicializar Latido Metriplético (PIT) */
     metriplectic_heartbeat_init();
     
+    /* Inicializar Scheduler Quirúrgico */
+    surgical_scheduler_init(&current_surgical_state);
+    laser_params_default(&global_laser_params);
+
     /* Habilitar interrupciones de hardware */
     __asm__ __volatile__ ("sti");
     

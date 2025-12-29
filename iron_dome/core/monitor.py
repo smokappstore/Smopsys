@@ -101,6 +101,15 @@ class IronDomeMonitor:
         table.add_row("  S (Metr):", f"{d.get('S', 0):.2f}")
         table.add_row("  Entropy:", f"{d.get('entropy', 0):.2f}")
         table.add_row("", "")
+        table.add_row("[bold white]Memory Geometry[/]", "")
+        table.add_row("  Z-Finch:", f"{d.get('centroid_z', 0):.4f}")
+        
+        # Confinement state based on entropy and Reynolds proxy
+        # If entropy is low and coherence is high -> Coherent
+        ent = d.get('entropy', 0)
+        conf = "Coherent" if ent < 0.2 else ("Thermal" if ent < 0.6 else "Evaporated")
+        table.add_row("  Confinement:", conf)
+        table.add_row("", "")
         table.add_row("[bold white]Security[/]", "")
         table.add_row("  True Positives:", f"[green]{s.get('TP', 0)}[/green]")
         table.add_row("  False Positives:", f"[red]{s.get('FP', 0)}[/red]")
