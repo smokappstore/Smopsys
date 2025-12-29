@@ -19,6 +19,7 @@
 #include "idt.h"
 #include "../drivers/metriplectic_heartbeat.h"
 #include "panic.h"
+#include "metriplectic_api.h"
 
 
 /* Global state for the Metriplectic heart */
@@ -140,12 +141,27 @@ static void display_operator_state(const GoldenState *state, const GoldenObserva
 
 static void display_lagrangian_competition(const GoldenState *state) {
     double ratio;
-    
     if (golden_fabs(state->L_metr) > 1e-10) {
         ratio = golden_fabs(state->L_symp) / golden_fabs(state->L_metr);
     } else {
         ratio = 999.99;
     }
+    
+    /* Competencia Global de la API (Rule 3.3) */
+    double gl_symp, gl_metr, gl_ratio;
+    metriplectic_get_global_competition(&gl_symp, &gl_metr);
+    if (gl_metr > 1e-10) gl_ratio = gl_symp / gl_metr;
+    else gl_ratio = 999.9;
+
+    vga_holographic_write_char('\n');
+    vga_holographic_set_color(VGA_COLOR_DARK_GREY, VGA_COLOR_BLACK);
+    vga_holographic_write("Global Registry L_symp=");
+    vga_holographic_write_float(gl_symp, 4);
+    vga_holographic_write(" L_metr=");
+    vga_holographic_write_float(gl_metr, 4);
+    vga_holographic_write(" [ratio=");
+    vga_holographic_write_float(gl_ratio, 2);
+    vga_holographic_write("]");
     
     vga_holographic_write_char('\n');
     vga_holographic_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
@@ -180,6 +196,7 @@ void kernel_main(void) {
     
     vga_holographic_init();
     bayesian_serial_init();
+    metriplectic_api_init();
     
     /* Mostrar banner */
     show_banner();

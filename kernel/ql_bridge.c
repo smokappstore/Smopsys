@@ -1,10 +1,12 @@
 /*
  * SmopsysQL Bridge - Implementation
  */
+#include <stdint.h>
 #include "ql_bridge.h"
 #include "quantum_laser.h"
 #include "../drivers/bayesian_serial.h"
 #include "golden_operator.h"
+#include "metriplectic_api.h"
 #include <string.h>
 
 /* Implementación local de strstr para evitar dependencias de stdlib */
@@ -21,7 +23,7 @@ char *strstr(const char *haystack, const char *needle) {
             if (!*n) return (char *)haystack;
         }
     }
-    return NULL;
+    return (char *)0;
 }
 
 /* Calibración aproximada para delay (ajustar según QEMU) */
@@ -29,9 +31,27 @@ char *strstr(const char *haystack, const char *needle) {
 
 extern LaserParams global_laser_params;
 
+typedef struct {
+    LindbladSystem *sys;
+    CMatrix *rho;
+} QuantumContext;
+
+void quantum_laser_compute_lagrangian(void *context, double *L_symp, double *L_metr) {
+    QuantumContext *ctx = (QuantumContext *)context;
+    static CMatrix unitary, dissipative;
+    
+    lindblad_compute_terms(ctx->sys, ctx->rho, &unitary, &dissipative);
+    
+    /* Magnitud como L_symp y L_metr (Rule 3.1) */
+    *L_symp = complex_abs2(cmatrix_trace(&unitary)) * 100.0;
+    *L_metr = complex_abs2(cmatrix_trace(&dissipative)) * 100.0;
+}
+
 void laser_pulse_emit(const char* wavelength, const char* duration, char polarization) {
     static LindbladSystem sys;
     static CMatrix rho;
+    static int registered = 0;
+    static QuantumContext q_ctx;
     
     bayesian_serial_write("[LASER] Emitting pulse: ");
     bayesian_serial_write(wavelength);
@@ -52,6 +72,20 @@ void laser_pulse_emit(const char* wavelength, const char* duration, char polariz
     p.t_end = 5.0;    /* Pocos pasos para demostración */
     
     laser_build_system(&p, &sys, &rho);
+
+    if (!registered) {
+        q_ctx.sys = &sys;
+        q_ctx.rho = &rho;
+        MetriplecticComponent comp = {
+            .name = "Quantum Laser Pulse",
+            .type = REV_HYBRID,
+            .compute_lagrangian = quantum_laser_compute_lagrangian,
+            .step = 0,
+            .context = &q_ctx
+        };
+        metriplectic_register(&comp);
+        registered = 1;
+    }
     
     /* Evolución corta para simular el pulso */
     LaserObservable obs[10];

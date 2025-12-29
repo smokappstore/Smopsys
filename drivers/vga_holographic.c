@@ -8,6 +8,22 @@
  */
 
 #include "vga_holographic.h"
+#include "../kernel/metriplectic_api.h"
+
+static uint32_t chars_written = 0;
+static uint32_t scroll_events = 0;
+
+void vga_holographic_compute_lagrangian(void *context, double *L_symp, double *L_metr) {
+    (void)context;
+    /* L_symp: Energía de la matriz de caracteres */
+    *L_symp = (double)chars_written * 0.005;
+    /* L_metr: Entropía evaporada por scrolls */
+    *L_metr = (double)scroll_events * 0.5;
+    
+    /* Decaimiento */
+    chars_written = (uint32_t)((double)chars_written * 0.8);
+    scroll_events = (uint32_t)((double)scroll_events * 0.9);
+}
 
 /* Estado global del driver */
 static uint16_t *vga_buffer = (uint16_t *)VGA_MEMORY;
@@ -28,6 +44,16 @@ void vga_holographic_init(void) {
     vga_col = 0;
     vga_color = vga_make_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
     vga_holographic_clear();
+
+    /* Registro en la API Metripléctica */
+    MetriplecticComponent comp = {
+        .name = "VGA Holographic",
+        .type = REV_HYBRID,
+        .compute_lagrangian = vga_holographic_compute_lagrangian,
+        .step = 0,
+        .context = 0
+    };
+    metriplectic_register(&comp);
 }
 
 void vga_holographic_clear(void) {
@@ -76,6 +102,7 @@ void vga_holographic_scroll(void) {
     }
     
     vga_row = VGA_HEIGHT - 1;
+    scroll_events++;
 }
 
 /* ============================================================
@@ -94,6 +121,7 @@ void vga_holographic_write_char(char c) {
         int index = vga_row * VGA_WIDTH + vga_col;
         vga_buffer[index] = vga_make_entry(c, vga_color);
         vga_col++;
+        chars_written++;
     }
     
     /* Wrap de columna */

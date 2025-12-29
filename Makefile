@@ -82,6 +82,7 @@ KERNEL_C_SRCS = \
     $(KERNEL_DIR)/lindblad.c \
     $(KERNEL_DIR)/quantum_laser.c \
     $(KERNEL_DIR)/ql_bridge.c \
+    $(KERNEL_DIR)/metriplectic_api.c \
     $(QL_C) \
     $(DRIVERS_DIR)/vga_holographic.c \
     $(DRIVERS_DIR)/bayesian_serial.c \
@@ -99,6 +100,7 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/lindblad.o \
     $(BUILD_DIR)/quantum_laser.o \
     $(BUILD_DIR)/ql_bridge.o \
+    $(BUILD_DIR)/metriplectic_api.o \
     $(BUILD_DIR)/quantum_program.o \
     $(BUILD_DIR)/vga_holographic.o \
     $(BUILD_DIR)/bayesian_serial.o \
@@ -218,6 +220,11 @@ $(BUILD_DIR)/quantum_laser.o: $(KERNEL_DIR)/quantum_laser.c
 $(BUILD_DIR)/ql_bridge.o: $(KERNEL_DIR)/ql_bridge.c
 	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling ql_bridge.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/metriplectic_api.o: $(KERNEL_DIR)/metriplectic_api.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling metriplectic_api.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(QL_C): $(QL_SRC) ql/smopsys_ql.py

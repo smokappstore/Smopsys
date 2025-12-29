@@ -13,6 +13,22 @@
  */
 
 #include "bayesian_serial.h"
+#include "../kernel/metriplectic_api.h"
+
+static uint32_t bytes_processed = 0;
+static uint32_t wait_cycles = 0;
+
+void bayesian_serial_compute_lagrangian(void *context, double *L_symp, double *L_metr) {
+    (void)context;
+    /* L_symp: Flujo de información exitoso */
+    *L_symp = (double)bytes_processed * 0.001;
+    /* L_metr: Disipación por esperas de buffer */
+    *L_metr = (double)wait_cycles * 0.00001;
+    
+    /* Decaimiento para dinámica en tiempo real */
+    bytes_processed = (uint32_t)((double)bytes_processed * 0.9);
+    wait_cycles = (uint32_t)((double)wait_cycles * 0.9);
+}
 
 /* Tabla de caracteres hexadecimales */
 static const char hex_table[] = "0123456789ABCDEF";
@@ -66,6 +82,16 @@ void bayesian_serial_init(void) {
     
     /* Configurar modo normal (no loopback) */
     outb(SERIAL_MODEM_CTRL, 0x0F);
+
+    /* Registro en la API Metripléctica */
+    MetriplecticComponent comp = {
+        .name = "Bayesian Serial",
+        .type = REV_HYBRID,
+        .compute_lagrangian = bayesian_serial_compute_lagrangian,
+        .step = 0,
+        .context = 0
+    };
+    metriplectic_register(&comp);
 }
 
 /* ============================================================
@@ -93,6 +119,8 @@ void bayesian_serial_write_char(char c) {
     }
     
     outb(SERIAL_DATA, c);
+    bytes_processed++;
+    wait_cycles += (100000 - timeout);
 }
 
 void bayesian_serial_write(const char *str) {
