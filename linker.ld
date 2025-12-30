@@ -23,6 +23,7 @@ SECTIONS
     /* Sección de código ejecutable */
     .text : ALIGN(4096)
     {
+        KEEP(*(.multiboot_header))
         *(.text.boot)       /* Código de entrada primero */
         *(.text)            /* Resto del código */
         *(.text.*)

@@ -194,8 +194,10 @@ void kernel_main(void) {
      * FASE 1: Inicialización de drivers
      * ======================================== */
     
-    vga_holographic_init();
     bayesian_serial_init();
+    bayesian_serial_write("[INIT] Serial Driver Initialized. Starting Kernel...\n");
+
+    vga_holographic_init();
     metriplectic_api_init();
     
     /* Mostrar banner */

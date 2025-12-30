@@ -137,39 +137,52 @@ all: dirs $(OS_IMAGE)
 	@echo " Run with: make run"
 	@echo "============================================"
 
-# Crear imagen final (stage1 + stage2 + kernel)
-$(OS_IMAGE): $(STAGE1_BIN) $(STAGE2_BIN) $(KERNEL_BIN)
-	@echo "[IMAGE] Creating OS image (2-stage boot)..."
-	cat $(STAGE1_BIN) $(STAGE2_BIN) > $@
-	@echo "[IMAGE] Padding for Sector 6 (2560 bytes)..."
-	truncate -s 2560 $@
-	@echo "[IMAGE] Appending kernel..."
-	cat $(KERNEL_BIN) >> $@
-	@echo "[IMAGE] Finalizing to 64KB..."
-	truncate -s 65536 $@
-	@ls -lh $@
+# ============================================================
+# LIMINE UTILS
+# ============================================================
+LIMINE_DIR = limine
+
+# ============================================================
+# DISK IMAGE (UEFI + BIOS)
+# ============================================================
+
+image: $(OS_IMAGE)
+
+$(OS_IMAGE): $(KERNEL_BIN) $(LIMINE_DIR)/limine
+	@echo "[IMAGE] Creating partitioned disk image $(OS_IMAGE)..."
+	# 1. Create partition image (63MB)
+	dd if=/dev/zero of=part.img bs=1M count=63
+	# 2. Format as FAT32
+	mkfs.vfat -F 32 -n "SMOPSYS" part.img
+	# 3. Install Limine files to partition
+	mmd -i part.img ::/EFI
+	mmd -i part.img ::/EFI/BOOT
+	mcopy -i part.img $(LIMINE_DIR)/BOOTX64.EFI ::/EFI/BOOT/BOOTX64.EFI
+	mcopy -i part.img $(LIMINE_DIR)/BOOTIA32.EFI ::/EFI/BOOT/BOOTIA32.EFI
+	mcopy -i part.img $(LIMINE_DIR)/limine-bios.sys ::/limine-bios.sys
+	mcopy -i part.img limine.cfg ::/limine.cfg
+	mcopy -i part.img limine.cfg ::/EFI/BOOT/limine.cfg
+	mcopy -i part.img $(BUILD_DIR)/kernel.elf ::/kernel.elf
+	# 4. Create disk image (64MB)
+	dd if=/dev/zero of=$@ bs=1M count=64
+	# 5. Create MBR partition table (Type 0xEF = EFI System Partition)
+	echo "start=2048, size=129024, type=ef, bootable" | sfdisk $@
+	# 6. Embed partition image into disk image at 1MB offset
+	dd if=part.img of=$@ bs=1M seek=1 conv=notrunc
+	# 7. Install Limine BIOS bootloader
+	$(LIMINE_DIR)/limine bios-install $@
+	rm part.img
+	@echo "============================================"
+	@echo " Image created: $(OS_IMAGE)"
+	@echo "============================================"
+
 
 # ============================================================
 # BOOTLOADER - STAGE 1
 # ============================================================
 
-boot: dirs $(STAGE1_BIN) $(STAGE2_BIN)
+# Legacy bootloader sections removed (migrated to Limine)
 
-$(STAGE1_BIN): $(STAGE1_SRC)
-	@mkdir -p $(BUILD_DIR)
-	@echo "[ASM] Assembling Stage 1 bootloader (MBR)..."
-	$(AS) -f bin $< -o $@
-	@echo "      Size: $$(stat -c%s $@) bytes"
-
-# ============================================================
-# BOOTLOADER - STAGE 2
-# ============================================================
-
-$(STAGE2_BIN): $(STAGE2_SRC)
-	@mkdir -p $(BUILD_DIR)
-	@echo "[ASM] Assembling Stage 2 bootloader..."
-	$(AS) -f bin $< -o $@
-	@echo "      Size: $$(stat -c%s $@) bytes"
 
 # ============================================================
 # KERNEL
@@ -334,12 +347,34 @@ $(TESTS_DIR)/test_surgical_scheduler: tests/test_surgical_scheduler.c kernel/sur
 # ============================================================
 
 run: $(OS_IMAGE)
-	@echo "[QEMU] Starting Smopsys Q-CORE..."
+	@echo "[QEMU] Starting Smopsys Q-CORE (BIOS Mode)..."
 	qemu-system-i386 \
+		-m 256 \
+		-drive format=raw,file=$(OS_IMAGE) \
+		-serial stdio \
+		-no-reboot \
+		-d cpu_reset,int,guest_errors \
+		-D qemu.log
+
+run-direct: $(KERNEL_BIN)
+	@echo "[QEMU] Starting Smopsys Q-CORE (Direct Kernel)..."
+	qemu-system-i386 \
+		-m 256 \
+		-kernel build/kernel.elf \
+		-serial stdio \
+		-no-reboot \
+		-d guest_errors
+
+run-uefi: $(OS_IMAGE)
+	@echo "[QEMU] Starting Smopsys Q-CORE (UEFI Mode)..."
+	qemu-system-x86_64 \
+		-m 256 \
+		-bios /usr/share/ovmf/OVMF.fd \
 		-drive format=raw,file=$(OS_IMAGE) \
 		-serial stdio \
 		-no-reboot \
 		-d guest_errors
+
 
 run-debug: $(OS_IMAGE)
 	@echo "[QEMU] Starting in debug mode (gdb remote)..."
