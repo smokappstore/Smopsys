@@ -2,6 +2,8 @@
 **Smart Operative System Baremetal Hardcore**
 *Sistema Operativo con Inferencia Bayesiana Metripléctica*
 
+![Dynamics](https://img.shields.io/badge/DYNAMICS-METRIPLECTIC-8A2BE2?style=for-the-badge&logo=atom&logoColor=white) ![Reynolds](https://img.shields.io/badge/Smopsys-QSOS-ff00ff?style=for-the-badge&logo=graph&logoColor=white) ![Entropy](https://img.shields.io/badge/ENTROPY-MINIMIZED-00ffff?style=for-the-badge&logo=lighthouse&logoColor=black) ![Framework](https://img.shields.io/badge/FRAMEWORK-QuoreMind-blue?style=for-the-badge&logo=book&logoColor=white) ![Threat Level](https://img.shields.io/badge/THREAT_LEVEL-DEFCON_4-green?style=for-the-badge&logo=shield&logoColor=white) ![Sensor Status](https://img.shields.io/badge/SENSORS-ONLINE-success?style=for-the-badge&logo=satellite&logoColor=white) ![Version](https://img.shields.io/badge/IRON_DOME-v2.0-red?style=for-the-badge&logo=linux&logoColor=white)
+
 Smopsys es un sistema operativo experimental que implementa una arquitectura **Metripléctica**, donde la dinámica del sistema se rige por la competencia entre una dinámica conservativa (Hamiltoniana) y una disipativa (Métrica/Entrópica).
 
 ## 🚀 Estado Actual: Laminar Flow
@@ -49,6 +51,9 @@ Sistema de seguridad preventiva para el hogar basado en dinámica metripléptica
 - **Reynolds Informacional ($Re_{\psi}$)**: Utiliza la turbulencia de datos para identificar anomalías cinéticas organizadas.
 - **Calibración Dinámica**: Registro automático de ruido blanco para ajuste de umbrales adaptativos.
 - **StatTracker**: Auditoría de Verdaderos/Falsos Positivos para validación de confiabilidad.
+
+<img width="445" height="221" alt="0112smop" src="https://github.com/user-attachments/assets/f2791000-5a57-4aa0-9a4a-381e8776b0e4" />
+<img width="445" height="815" alt="0112smop" src="https://github.com/user-attachments/assets/7cf47048-9314-4b15-a126-cb3b42921db6" />
 
 #### 7. [Interactive Control System](file:///home/jako/smopsys/Smopsys/iron_dome/core/control.py)
 Interfaz de control en tiempo real mediante terminal raw.
