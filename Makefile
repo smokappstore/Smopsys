@@ -46,6 +46,7 @@ KERNEL_C_SRC = $(KERNEL_DIR)kernel/kernel_main.c \
                $(KERNEL_DIR)kernel/golden_operator.c \
                $(KERNEL_DIR)kernel/lindblad.c \
                $(KERNEL_DIR)kernel/quantum_laser.c \
+               $(KERNEL_DIR)kernel/prn_modulator.c \
                $(DRIVERS_DIR)drivers/vga_holographic.c \
                $(DRIVERS_DIR)drivers/bayesian_serial.c
 
@@ -55,6 +56,8 @@ KERNEL_ASM_OBJ = $(BUILD_DIR)kernel/kernel_entry.o \
                  $(BUILD_DIR)kernel/golden_operator.o \
                  $(BUILD_DIR)kernel/lindblad.o \
                  $(BUILD_DIR)kernel/quantum_laser.o \
+                 $(BUILD_DIR)kernel/prn_modulator.o \
+                 $(BUILD_DIR)kernel/prn_ops.o \
                  $(BUILD_DIR)drivers/vga_holographic.o \
                  $(BUILD_DIR)drivers/bayesian_serial.o
 
@@ -83,6 +86,7 @@ KERNEL_C_SRCS = \
     $(KERNEL_DIR)/quantum_laser.c \
     $(KERNEL_DIR)/ql_bridge.c \
     $(KERNEL_DIR)/metriplectic_api.c \
+    $(KERNEL_DIR)/prn_modulator.c \
     $(QL_C) \
     $(DRIVERS_DIR)/vga_holographic.c \
     $(DRIVERS_DIR)/bayesian_serial.c \
@@ -101,6 +105,8 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/quantum_laser.o \
     $(BUILD_DIR)/ql_bridge.o \
     $(BUILD_DIR)/metriplectic_api.o \
+    $(BUILD_DIR)/prn_modulator.o \
+    $(BUILD_DIR)/prn_ops.o \
     $(BUILD_DIR)/quantum_program.o \
     $(BUILD_DIR)/vga_holographic.o \
     $(BUILD_DIR)/bayesian_serial.o \
@@ -305,6 +311,16 @@ $(BUILD_DIR)/metriplectic_heartbeat.o: $(DRIVERS_DIR)/metriplectic_heartbeat.c
 $(BUILD_DIR)/interrupt_stubs.o: $(KERNEL_DIR)/interrupt_stubs.asm
 	@mkdir -p $(BUILD_DIR)
 	@echo "[ASM] Assembling interrupt stubs..."
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(BUILD_DIR)/prn_modulator.o: $(KERNEL_DIR)/prn_modulator.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling prn_modulator.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/prn_ops.o: $(KERNEL_DIR)/prn_ops.asm
+	@mkdir -p $(BUILD_DIR)
+	@echo "[ASM] Assembling prn_ops.asm..."
 	$(AS) $(ASFLAGS) $< -o $@
 
 # ============================================================
