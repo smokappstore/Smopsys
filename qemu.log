@@ -579,18 +579,38 @@ Servicing hardware INT=0x08
 Servicing hardware INT=0x08
 Servicing hardware INT=0x08
 Servicing hardware INT=0x08
-Servicing hardware INT=0x09
 Servicing hardware INT=0x08
 Servicing hardware INT=0x08
 Servicing hardware INT=0x08
-Servicing hardware INT=0x09
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
+Servicing hardware INT=0x08
 Servicing hardware INT=0x08
 Servicing hardware INT=0x08
 Servicing hardware INT=0x08
 Servicing hardware INT=0x20
      0: v=20 e=0000 i=0 cpl=0 IP=0008:00010144 pc=00010144 SP=0010:00021fd4 env->regs[R_EAX]=00022000
 EAX=00022000 EBX=0000000c ECX=000003fd EDX=000003f8
-ESI=00000000 EDI=0006e1b4 EBP=00022000 ESP=00021fd4
+ESI=00000000 EDI=0006ea54 EBP=00022000 ESP=00021fd4
 EIP=00010144 EFL=00000202 [-------] CPL=0 II=0 A20=1 SMM=0 HLT=0
 ES =0010 00000000 ffffffff 00cf9300 DPL=0 DS   [-WA]
 CS =0008 00000000 ffffffff 00cf9a00 DPL=0 CS32 [-R-]
@@ -601,7 +621,7 @@ GS =0010 00000000 ffffffff 00cf9300 DPL=0 DS   [-WA]
 LDT=0000 00000000 00000000 00008200 DPL=0 LDT
 TR =0000 00000000 0000ffff 00008b00 DPL=0 TSS32-busy
 GDT=     00010060 00000017
-IDT=     00069900 000007ff
+IDT=     0006a1a0 000007ff
 CR0=00000033 CR2=00000000 CR3=00000000 CR4=00000000
 DR0=00000000 DR1=00000000 DR2=00000000 DR3=00000000 
 DR6=ffff0ff0 DR7=00000400
