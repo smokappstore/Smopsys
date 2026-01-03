@@ -60,10 +60,13 @@ void ept_map_identity(ept_context_t *ctx) {
     }
     
     // 3. Setup PD entries for 2MB pages
-    // We map 0 to 4GB Identity
-    // Total entries: 4 * 512 = 2048 entries
+    // We map 0 to 4GB Identity, but OFFSET to protect Host Kernel
+    // Host Kernel is at 1MB+. We'll offset Guest Physical 0 to Host Physical 32MB (0x2000000)
+    // This assumes Host has > 4GB + 32MB RAM.
     
-    uint64_t phys_addr = 0;
+    #define GUEST_MEMORY_OFFSET 0x2000000
+    
+    uint64_t phys_addr = GUEST_MEMORY_OFFSET;
     
     for (int pd_idx = 0; pd_idx < 4; pd_idx++) {
         for (int entry_idx = 0; entry_idx < 512; entry_idx++) {
@@ -77,7 +80,7 @@ void ept_map_identity(ept_context_t *ctx) {
         }
     }
     
-    vga_holographic_write("[EPT] Identity mapped first 4GB with 2MB pages.\n");
+    vga_holographic_write("[EPT] Mapped 4GB Guest Phys -> Host Phys [32MB+]\n");
 }
 
 uint64_t ept_get_pointer(ept_context_t *ctx) {
