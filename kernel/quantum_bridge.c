@@ -95,6 +95,14 @@ void quantum_bridge_init(QuantumVM *vm) {
     vm->golden_state.O_n = 1.0;
     vm->golden_state.delta = 0.18; // From dit_physics.h
     
+    // Initialize Q5-D1024 Transceiver (Substrate)
+    vm->transceiver.transistor_voltage = SUBSTRATE_VT_NOMINAL;
+    vm->transceiver.measurement_count = 0;
+    for (int i = 0; i < Q5_STATE_COUNT; i++) {
+        vm->transceiver.q_amplitudes[i] = 0.0;
+        vm->transceiver.output_buffer[i] = 0; // Each uint32_t is 32 bits, 32*32 = 1024
+    }
+    
     // Allocate memory structures (Static assignment for bare metal)
     vm->page_table = (uint32_t*)0x100000; // 1MB mark
     vm->page_count = VM_MAX_PAGES;
@@ -271,10 +279,10 @@ void quantum_bridge_run(QuantumVM *vm) {
             double ReI = quantum_bridge_compute_ReI(vm);
             
             // Detect vortices
-            uint32_t vortices = quantum_bridge_detect_vortices(vm);
+            quantum_bridge_detect_vortices(vm);
             
             // Compute OTOC
-            double otoc = quantum_bridge_compute_OTOC(vm);
+            quantum_bridge_compute_OTOC(vm);
             
             // Check stability
             if (quantum_bridge_is_unstable(vm)) {
@@ -293,6 +301,10 @@ void quantum_bridge_run(QuantumVM *vm) {
             } else {
                 vm->chaos.instability_ticks = 0;
             }
+
+            // Execute Q5-D1024 Substrate Middleware
+            // Capturing "Lightning" (Quantum) and feeding "Lighthouse" (Classical)
+            quantum_bridge_transceive(vm);
             
             // Print diagnostics every 1000 cycles
             if (cycles % 1000 == 0) {
@@ -365,7 +377,75 @@ void quantum_bridge_print_diagnostics(QuantumVM *vm) {
     bayesian_serial_write_labeled("θ", vm->golden_state.theta);
     bayesian_serial_write_labeled("φ", vm->golden_state.phi);
     
+    // Transceiver Layer (Q5-D1024)
+    bayesian_serial_write("\n--- Q5-D1024 Substrate (Transceiver) ---\n");
+    bayesian_serial_write("Substrate Voltage (V_t): ");
+    bayesian_serial_write_float(vm->transceiver.transistor_voltage, 3);
+    bayesian_serial_write("V\n");
+    bayesian_serial_write("Total Measurements Captured: ");
+    bayesian_serial_write_decimal(vm->transceiver.measurement_count);
+    bayesian_serial_write("\n");
+    
+    // Snapshot of the 1024-bit buffer (first 4 words)
+    bayesian_serial_write("D1024 Buffer Snapshot: ");
+    for (int i = 0; i < 4; i++) {
+        // bayesian_serial_write_hex(vm->transceiver.output_buffer[i]); // Assuming this exists or using decimal for now
+        bayesian_serial_write_decimal(vm->transceiver.output_buffer[i]);
+        bayesian_serial_write(" ");
+    }
+    bayesian_serial_write("...\n");
+
     bayesian_serial_write("==================================\n\n");
+}
+
+/* ============================================================
+ * Q5-D1024 TRANSCEIVER IMPLEMENTATION
+ * 
+ * "Lightning" (Quantum Pulse) -> "Transistor Voltage" (Substrate) -> "Lighthouse" (Classical)
+ * ============================================================ */
+
+void quantum_bridge_measure_q5(QuantumVM *vm, double *amplitudes) {
+    // Simulate measurement of 5 qubits (32 states)
+    // In a real system, this would be the output of the Quantum Gate Array
+    for (int i = 0; i < Q5_STATE_COUNT; i++) {
+        // Use Golden Operator and ReI to modulate amplitude
+        // High ReI (Turbulence) causes decoherence/noise in the lightning receiver
+        double noise = (vm->flow.ReI > REI_CRITICAL_THRESHOLD) ? 0.2 : 0.05;
+        amplitudes[i] = (1.0 / Q5_STATE_COUNT) * (1.0 + noise * (double)(i % 7));
+        
+        // Normalize (simplified)
+        if (amplitudes[i] > 1.0) amplitudes[i] = 1.0;
+    }
+}
+
+void quantum_bridge_transceive(QuantumVM *vm) {
+    // capturing the state and mapping to 1024-bit middleware
+    
+    // 1. Receive 5-qubit states (Lightning)
+    quantum_bridge_measure_q5(vm, vm->transceiver.q_amplitudes);
+    
+    // 2. Map 32 states to 32 * 32 (1024) bit correlation matrix
+    // Operates at the threshold voltage V_t
+    for (int i = 0; i < Q5_STATE_COUNT; i++) {
+        uint32_t correlation_pattern = 0;
+        double amp_i = vm->transceiver.q_amplitudes[i];
+        
+        // Middleware logic: directly at the voltage level
+        // thresholds determined by ReI and Golden Operator
+        for (int b = 0; b < 32; b++) {
+            double threshold = (double)b / 32.0;
+            if (amp_i > threshold && vm->transceiver.transistor_voltage > 0.7) {
+                correlation_pattern |= (1 << b);
+            }
+        }
+        
+        vm->transceiver.output_buffer[i] = correlation_pattern;
+    }
+    
+    vm->transceiver.measurement_count++;
+    
+    // Voltage fluctuation simulation
+    vm->transceiver.transistor_voltage = SUBSTRATE_VT_NOMINAL + (double)(vm->golden_state.n % 10) * 0.001;
 }
 
 int quantum_bridge_is_unstable(QuantumVM *vm) {

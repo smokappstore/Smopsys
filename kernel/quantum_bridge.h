@@ -8,6 +8,10 @@
 #define MU_PHI_LAMINAR 0.1
 #define REI_WARNING_THRESHOLD 2000.0
 #define REI_CRITICAL_THRESHOLD 2300.0
+#define Q5_STATE_COUNT 32
+#define D1024_BIT_WIDTH 1024
+#define SUBSTRATE_VT_NOMINAL 0.8 // Nominal voltage in Volts
+
 
 // VM States
 #define VM_STATE_INIT       0
@@ -42,6 +46,14 @@ typedef struct {
 } QuantumGoldenState;
 
 typedef struct {
+    double q_amplitudes[Q5_STATE_COUNT]; // 5 Qubits -> 32 amplitudes
+    uint32_t output_buffer[32];          // 32 * 32 bits = 1024 bits
+    double transistor_voltage;           // Simulated substrate voltage
+    uint32_t measurement_count;
+} QuantumTransceiver;
+
+
+typedef struct {
     uint32_t state;
     
     // Guest CPU State (Simple)
@@ -58,6 +70,7 @@ typedef struct {
     QuantumFlowState flow;
     QuantumChaosState chaos;
     QuantumGoldenState golden_state;
+    QuantumTransceiver transceiver;
     
     // I/O
     char serial_buffer[4096];
@@ -69,5 +82,9 @@ void quantum_bridge_run(QuantumVM *vm);
 int quantum_bridge_load_kernel(QuantumVM *vm, const uint8_t *kernel_image, uint32_t size);
 void quantum_bridge_halt(QuantumVM *vm);
 void quantum_bridge_print_diagnostics(QuantumVM *vm);
+
+// Q5-D1024 Transceiver API
+void quantum_bridge_transceive(QuantumVM *vm);
+void quantum_bridge_measure_q5(QuantumVM *vm, double *amplitudes);
 
 #endif
