@@ -1,5 +1,6 @@
 <div aling="center"><img width="724" height="524" alt="logo-37jX0meXAyUGjOaCml5nu5vJjeQ (1)" src="https://github.com/user-attachments/assets/b4fa3ed4-d26b-4835-8665-b6b53713d672" />
-</div>                
+</div> 
+
 # Smopsys: Q-CORE [LAMINAR FLOW PHASE]
 **Smart Operative System Baremetal Hardcore**
 *Sistema Operativo con Inferencia Bayesiana Metripléctica*
