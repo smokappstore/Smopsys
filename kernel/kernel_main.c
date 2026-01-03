@@ -23,11 +23,15 @@
 #include "metriplectic_api.h"
 #include "prn_core.h"
 #include "vmx.h"
+#include "quantum_bridge.h"
 
 
 /* Global state for the Metriplectic heart */
 GoldenState current_golden_state;
 GoldenObservables current_golden_obs;
+
+/* Quantum VM Bridge */
+QuantumVM global_quantum_vm;
 
 /* Surgical Scheduler State */
 #include "surgical_scheduler.h"
@@ -230,6 +234,9 @@ void kernel_main(void) {
 
     /* Inicializar VMX (Ring -1) */
     init_vmx();
+
+    /* Inicializar Quantum Bridge */
+    quantum_bridge_init(&global_quantum_vm);
 
     /* Habilitar interrupciones de hardware */
     __asm__ __volatile__ ("sti");

@@ -87,6 +87,7 @@ KERNEL_C_SRCS = \
     $(KERNEL_DIR)/lindblad.c \
     $(KERNEL_DIR)/quantum_laser.c \
     $(KERNEL_DIR)/ql_bridge.c \
+    $(KERNEL_DIR)/quantum_bridge.c \
     $(KERNEL_DIR)/metriplectic_api.c \
     $(KERNEL_DIR)/prn_modulator.c \
     $(QL_C) \
@@ -123,7 +124,8 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/surgical_scheduler.o \
     $(BUILD_DIR)/kernel/vmx.o \
     $(BUILD_DIR)/kernel/vmx_ops.o \
-    $(BUILD_DIR)/kernel/ept.o
+    $(BUILD_DIR)/kernel/ept.o \
+    $(BUILD_DIR)/kernel/quantum_bridge.o
 
 
 KERNEL_OBJS = $(KERNEL_ENTRY_OBJ) $(KERNEL_C_OBJS)
@@ -244,6 +246,11 @@ $(BUILD_DIR)/quantum_laser.o: $(KERNEL_DIR)/quantum_laser.c
 $(BUILD_DIR)/ql_bridge.o: $(KERNEL_DIR)/ql_bridge.c
 	@mkdir -p $(BUILD_DIR)
 	@echo "[CC] Compiling ql_bridge.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/kernel/quantum_bridge.o: $(KERNEL_DIR)/quantum_bridge.c
+	@mkdir -p $(BUILD_DIR)/kernel
+	@echo "[CC] Compiling quantum_bridge.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/metriplectic_api.o: $(KERNEL_DIR)/metriplectic_api.c
