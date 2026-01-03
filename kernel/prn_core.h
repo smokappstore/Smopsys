@@ -41,4 +41,10 @@ extern int32_t asm_calculate_entropy_fast(complex_fixed_t* buffer, uint32_t size
 // Ejecuta paso de mariposa o FFT completa (dependiendo de la implementación asm)
 extern void asm_fft_butterfly(complex_fixed_t* buffer, uint32_t size);
 
+// C-API
+void PRN_Init(void);
+int32_t PRN_ProcessSignal(int32_t* signal_data, uint32_t size);
+// Ingest a single sample, buffering until window size is reached, then process
+void PRN_InputSample(int32_t sample);
+
 #endif

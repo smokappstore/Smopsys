@@ -63,6 +63,12 @@ Interfaz de control en tiempo real mediante terminal raw.
 - **BIOS/UEFI Mode**: Tecla `TAB` para acceder a una utilidad de configuración azul (BIOS style) en tiempo real.
 - **Control Reactivo**: Permite intervenir en la toma de decisiones del domo y tunear parámetros sin reiniciar el núcleo metripléptico.
 
+#### 8. [Metriplectic Hypervisor](file:///home/jako/smopsys/Smopsys/kernel/vmx.c)
+Implementación de un Hypervisor Tipo-1 (Bare Metal) que utiliza extensiones de virtualización por hardware (Intel VT-x).
+- **Control Metripléctico**: El scheduler del hypervisor monitoriza la entropía de las máquinas virtuales (basada en razones de salida como EPT Violations vs HLT).
+- **Evaporación de Recursos**: Si una VM exhibe alta entropía (comportamiento caótico/turbulento), el sistema aumenta la "viscosidad" del scheduler, disipando sus ciclos de CPU.
+- **EPT (Extended Page Tables)**: Aislamiento de memoria garantizado mediante tablas de páginas extendidas con mapeo de identidad inicial.
+
 
 ## 🛠 Arquitectura
 ```mermaid

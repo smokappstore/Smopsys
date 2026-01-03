@@ -17,6 +17,7 @@
 
 #include "quantum_laser.h"
 #include "golden_operator.h"
+#include "prn_core.h"
 
 /* ============================================================
  * PARÁMETROS POR DEFECTO
@@ -308,6 +309,23 @@ void laser_evolve(
         
         /* Paso de integración */
         lindblad_step_rk4(sys, rho, p->dt);
+        
+        /* [PRN Integration] Feed sample (photon number) to PRN Analyzer */
+        /* Scale double n_photons to 16.16 fixed point */
+        /* Using current expectation approx from previous step or recompute? */
+        /* Ideally recompute, but expensive. Let's use the one from observation above if triggered, 
+           or just a quick expectation here. Since 'state' is local to the 'if' block, 
+           we only feed when we sample. Or we can feed every step. 
+           Let's feed every sample step to match observation rate. */
+        if (t >= next_sample - dt_sample) { // Roughly sync with sampling
+             // We need access to state.n_photons. 
+             // Just reuse the observation array's last value if valid
+             if (sample_idx > 0) {
+                 double n_val = obs[sample_idx-1].n_photons;
+                 PRN_InputSample((int32_t)(n_val * 65536.0));
+             }
+        }
+        
         t += p->dt;
     }
 }

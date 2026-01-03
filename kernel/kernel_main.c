@@ -19,7 +19,10 @@
 #include "idt.h"
 #include "../drivers/metriplectic_heartbeat.h"
 #include "panic.h"
+#include "panic.h"
 #include "metriplectic_api.h"
+#include "prn_core.h"
+#include "vmx.h"
 
 
 /* Global state for the Metriplectic heart */
@@ -217,10 +220,16 @@ void kernel_main(void) {
     
     /* Inicializar Latido Metriplético (PIT) */
     metriplectic_heartbeat_init();
+
+    /* Inicializar Sistema PRN (Probabilistic Record Noise) */
+    PRN_Init();
     
     /* Inicializar Scheduler Quirúrgico */
     surgical_scheduler_init(&current_surgical_state);
     laser_params_default(&global_laser_params);
+
+    /* Inicializar VMX (Ring -1) */
+    init_vmx();
 
     /* Habilitar interrupciones de hardware */
     __asm__ __volatile__ ("sti");

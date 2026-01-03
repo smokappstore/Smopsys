@@ -59,9 +59,11 @@ KERNEL_ASM_OBJ = $(BUILD_DIR)kernel/kernel_entry.o \
                  $(BUILD_DIR)kernel/prn_modulator.o \
                  $(BUILD_DIR)kernel/prn_ops.o \
                  $(BUILD_DIR)drivers/vga_holographic.o \
-                 $(BUILD_DIR)drivers/bayesian_serial.o
+                 $(BUILD_DIR)drivers/bayesian_serial.o \
+                 $(BUILD_DIR)kernel/vmx_ops.o
 
-KERNEL_C_OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_C_SRC))
+KERNEL_C_OBJ = $(patsubst %.c,$(BUILD_DIR)/%.o,$(KERNEL_C_SRC)) \
+               $(BUILD_DIR)/kernel/vmx.o
 
 KERNEL_OBJS = $(KERNEL_ASM_OBJ) $(KERNEL_C_OBJ)
 
@@ -118,7 +120,10 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/shell.o \
     $(BUILD_DIR)/MemoryManager.o \
     $(BUILD_DIR)/bimotype.o \
-    $(BUILD_DIR)/surgical_scheduler.o
+    $(BUILD_DIR)/surgical_scheduler.o \
+    $(BUILD_DIR)/kernel/vmx.o \
+    $(BUILD_DIR)/kernel/vmx_ops.o \
+    $(BUILD_DIR)/kernel/ept.o
 
 
 KERNEL_OBJS = $(KERNEL_ENTRY_OBJ) $(KERNEL_C_OBJS)
@@ -322,6 +327,21 @@ $(BUILD_DIR)/prn_ops.o: $(KERNEL_DIR)/prn_ops.asm
 	@mkdir -p $(BUILD_DIR)
 	@echo "[ASM] Assembling prn_ops.asm..."
 	$(AS) $(ASFLAGS) $< -o $@
+
+$(BUILD_DIR)/kernel/vmx_ops.o: $(KERNEL_DIR)/vmx_ops.asm
+	@mkdir -p $(BUILD_DIR)/kernel
+	@echo "[ASM] Assembling vmx_ops.asm..."
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(BUILD_DIR)/kernel/vmx.o: $(KERNEL_DIR)/vmx.c
+	@mkdir -p $(BUILD_DIR)/kernel
+	@echo "[CC] Compiling vmx.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/kernel/ept.o: $(KERNEL_DIR)/ept.c
+	@mkdir -p $(BUILD_DIR)/kernel
+	@echo "[CC] Compiling ept.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # ============================================================
 # TESTS (Host)

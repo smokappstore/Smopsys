@@ -7,6 +7,8 @@
 #include "quantum_laser.h"
 
 static PRN_State prn_state;
+static int32_t input_buffer[WINDOW_SIZE];
+static uint32_t input_idx = 0;
 
 void PRN_Init() {
     prn_state.coherence_weight = 1 << 16; // 1.0 in 16.16
@@ -14,9 +16,26 @@ void PRN_Init() {
     prn_state.noise_influence = (int32_t)(0.7 * 65536);
     prn_state.history_idx = 0;
     
+    input_idx = 0;
+    
     for(int i=0; i<WINDOW_SIZE; i++) {
         prn_state.spectral_buffer[i].real = 0;
         prn_state.spectral_buffer[i].imag = 0;
+        input_buffer[i] = 0;
+    }
+}
+
+void PRN_InputSample(int32_t sample) {
+    if (input_idx < WINDOW_SIZE) {
+        input_buffer[input_idx++] = sample;
+    }
+    
+    if (input_idx >= WINDOW_SIZE) {
+        PRN_ProcessSignal(input_buffer, WINDOW_SIZE);
+        // Shift buffer (slide window) or reset? 
+        // For strict block processing, reset. 
+        // For sliding, we'd memmove. Let's do simple reset for efficiency in kernel.
+        input_idx = 0;
     }
 }
 
