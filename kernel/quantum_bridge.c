@@ -98,10 +98,16 @@ void quantum_bridge_init(QuantumVM *vm) {
     // Initialize Q5-D1024 Transceiver (Substrate)
     vm->transceiver.transistor_voltage = SUBSTRATE_VT_NOMINAL;
     vm->transceiver.measurement_count = 0;
+    vm->transceiver.active_side = QC_SIDE_LIGHTNING;
     for (int i = 0; i < Q5_STATE_COUNT; i++) {
         vm->transceiver.q_amplitudes[i] = 0.0;
         vm->transceiver.output_buffer[i] = 0; // Each uint32_t is 32 bits, 32*32 = 1024
     }
+
+    // Initialize Feedback
+    vm->last_feedback.command = FEEDBACK_NONE;
+    vm->last_feedback.intensity = 0.0;
+    vm->last_feedback.timestamp = 0;
     
     // Allocate memory structures (Static assignment for bare metal)
     vm->page_table = (uint32_t*)0x100000; // 1MB mark
@@ -287,9 +293,9 @@ void quantum_bridge_run(QuantumVM *vm) {
             // Check stability
             if (quantum_bridge_is_unstable(vm)) {
                 bayesian_serial_write("[WARNING] ReI approaching critical threshold!\n");
-                bayesian_serial_write("[WARNING] ReI = ");
-                bayesian_serial_write_float(ReI, 4);
-                bayesian_serial_write("\n");
+                
+                // Classical Lighthouse sends feedback to stabilize the Lightning Rod
+                quantum_bridge_inject_feedback(vm, FEEDBACK_STABILIZE, 0.8);
                 
                 // Apply golden ratio optimization preventatively
                 quantum_bridge_optimize_golden_ratio(vm);
@@ -377,6 +383,25 @@ void quantum_bridge_print_diagnostics(QuantumVM *vm) {
     bayesian_serial_write_labeled("θ", vm->golden_state.theta);
     bayesian_serial_write_labeled("φ", vm->golden_state.phi);
     
+    // Side Management Status
+    bayesian_serial_write("\n--- Side Management (QC vs Classical) ---\n");
+    bayesian_serial_write("Active Dominant Side: ");
+    if (vm->transceiver.active_side == QC_SIDE_LIGHTNING) {
+        bayesian_serial_write("LIGHTNING (Quantum Discharge)\n");
+    } else {
+        bayesian_serial_write("LIGHTHOUSE (Classical Structure)\n");
+    }
+    
+    if (vm->last_feedback.command != FEEDBACK_NONE) {
+        bayesian_serial_write("Last Feedback Cmd: ");
+        switch (vm->last_feedback.command) {
+            case FEEDBACK_STABILIZE: bayesian_serial_write("STABILIZE\n"); break;
+            case FEEDBACK_BOOST_VT:  bayesian_serial_write("BOOST_VT\n"); break;
+            case FEEDBACK_QUENCH:    bayesian_serial_write("QUENCH\n"); break;
+        }
+        bayesian_serial_write_labeled("Intensity", vm->last_feedback.intensity);
+    }
+
     // Transceiver Layer (Q5-D1024)
     bayesian_serial_write("\n--- Q5-D1024 Substrate (Transceiver) ---\n");
     bayesian_serial_write("Substrate Voltage (V_t): ");
@@ -446,6 +471,40 @@ void quantum_bridge_transceive(QuantumVM *vm) {
     
     // Voltage fluctuation simulation
     vm->transceiver.transistor_voltage = SUBSTRATE_VT_NOMINAL + (double)(vm->golden_state.n % 10) * 0.001;
+    
+    // 3. Sync sides (Lighthouse vs Lightning)
+    quantum_bridge_sync_sides(vm);
+}
+
+void quantum_bridge_inject_feedback(QuantumVM *vm, uint8_t command, double intensity) {
+    vm->last_feedback.command = command;
+    vm->last_feedback.intensity = intensity;
+    vm->last_feedback.timestamp = vm->golden_state.n;
+    
+    bayesian_serial_write("[Lighthouse] Feedback injected: ");
+    switch (command) {
+        case FEEDBACK_STABILIZE:
+            bayesian_serial_write("STABILIZE\n");
+            vm->flow.mu_phi *= (1.0 + intensity);
+            break;
+        case FEEDBACK_BOOST_VT:
+            bayesian_serial_write("BOOST_VT\n");
+            vm->transceiver.transistor_voltage += (0.1 * intensity);
+            break;
+        case FEEDBACK_QUENCH:
+            bayesian_serial_write("QUENCH\n");
+            vm->flow.rho_I *= 0.5; // Artificial density reduction
+            break;
+    }
+}
+
+void quantum_bridge_sync_sides(QuantumVM *vm) {
+    // Competition logic: if chaos is too high, Lighthouse must take control
+    if (vm->flow.ReI > REI_CRITICAL_THRESHOLD || vm->chaos.vortex_count > 5) {
+        vm->transceiver.active_side = QC_SIDE_LIGHTHOUSE;
+    } else {
+        vm->transceiver.active_side = QC_SIDE_LIGHTNING;
+    }
 }
 
 int quantum_bridge_is_unstable(QuantumVM *vm) {

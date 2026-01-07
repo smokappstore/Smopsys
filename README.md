@@ -70,49 +70,9 @@ Implementación de un Hypervisor Tipo-1 (Bare Metal) que utiliza extensiones de 
 - **Evaporación de Recursos**: Si una VM exhibe alta entropía (comportamiento caótico/turbulento), el sistema aumenta la "viscosidad" del scheduler, disipando sus ciclos de CPU.
 - **EPT (Extended Page Tables)**: Aislamiento de memoria con **Host Physical Offset** (Guest 0x0 -> Host 0x2M) para proteger la integridad del kernel.
 
+#### 9. [Quantum-Classical Bridge](file:///home/jako/smopsys/Smopsys/kernel/quantum_bridge.h)
+El "Pararrayos" del sistema. Middleware que transduce pulsos cuánticos de alta energía en estructuras clásicas estables.
+- **Q5-D1024 Substrate**: Transceptor que mide 5 qubits ($2^5 = 32$ estados) y los mapea a una matriz de correlación de 1024 bits ($32 \times 32$).
+- **Side Management**: Gestión bidireccional entre el lado **LIGHTNING** (Quantum Discharge) y **LIGHTHOUSE** (Classical Structure).
+- **Metriplectic Stabilization**: Monitoreo de $Re_I$ (Reynolds Informacional) y OTOC para prevenir el caos cuántico inyectando retroalimentación de "viscosidad áurea" ($\phi$) al sustrato.
 
-## 🛠 Arquitectura
-```mermaid
-graph TD
-    A[Bootloader Stage 1] --> B[Bootloader Stage 2]
-    B --> C[Kernel Entry]
-    C --> D{Q-CORE Engine}
-    D --> E[Golden Operator Sched]
-    D --> F[Lindblad Dynamics]
-    D --> I[Panic System: Entropy Sink]
-    D --> J[BiMOtype: Laser-Morse]
-    D --> K[Iron Dome: IoT Security]
-    E --> G[Visual Output: VGA]
-    F --> H[I/O: Bayesian Serial]
-    J --> G
-    J --> H
-    K --> L[Sensors: Mic/Motion/Cam]
-    L --> K
-
-```
-
-## ⌨️ Shell y Diagnósticos
-El sistema cuenta con un shell interactivo (`ql-bias>`) para monitorear el corazón del kernel:
-- `status`: Muestra el estado del Operador Áureo y el flujo (LAMINAR/TURBULENT).
-- `memory`: Resumen termodinámico (Entropía total, Centroide Z-Finch).
-- `pages`: Inspección granular de los Informones (páginas de memoria).
-- `ticks`: Contador de latidos de hardware (PIT).
-- `laser`: Estado de la retroalimentación del sistema de pulsos.
-- `panic`: (Prueba) Dispara manualmente una singularidad de entropía.
-- `competition`: Muestra la lucha termodinámica ($L_{symp}$ vs $L_{metr}$) de una página.
-- `bimotype <msg>`: Emite un mensaje pulsado usando el protocolo Laser-Morse.
-
-
-
-## 📐 El Mandato Metripléctico
-Todo sistema dinámico en Smopsys debe definirse mediante:
-- **$L_{symp}$**: Movimiento reversible (Conservación).
-- **$L_{metr}$**: Relajación hacia el atractor (Disipación).
-
-## 🔨 Construcción y Pruebas
-El proyecto utiliza un sistema de build basado en `Makefile`.
-```bash
-make          # Compila el kernel y genera la imagen ISO
-make run      # Ejecuta el sistema en QEMU
-make test     # Ejecuta la suite de pruebas unitarias (Pytest)
-```
