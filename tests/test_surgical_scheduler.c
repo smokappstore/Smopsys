@@ -32,6 +32,7 @@ int main() {
     LaserParams l_params;
     
     surgical_scheduler_init(&s_state);
+    s_state.dit_state = 0; // Explicitly null for testing
     
     /* Test Case 1: Positive O_n (L-Chirality) */
     g_state.O_n = (int32_t)(0.5 * FP_ONE);

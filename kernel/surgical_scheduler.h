@@ -10,6 +10,7 @@
 
 #include "golden_operator.h"
 #include "quantum_laser.h"
+#include "dit_engine.h"
 
 typedef enum {
     CHIRALITY_L = 1,    /* Sector Bosónico (Raya -) */
@@ -20,6 +21,7 @@ typedef struct {
     SurgicalChirality current_chirality;
     uint32_t switch_count;
     double total_evaporated_entropy;
+    DITEngineState *dit_state;
 } SurgicalState;
 
 /* Inicialización del scheduler quirúrgico */

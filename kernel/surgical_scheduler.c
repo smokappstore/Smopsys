@@ -10,6 +10,7 @@ void surgical_scheduler_init(SurgicalState *s_state) {
     s_state->current_chirality = CHIRALITY_L;
     s_state->switch_count = 0;
     s_state->total_evaporated_entropy = 0;
+    s_state->dit_state = 0;
     
     bayesian_serial_write("[SURGICAL] Scheduler initialized.\n");
 }
@@ -38,6 +39,11 @@ void surgical_scheduler_step(SurgicalState *s_state, GoldenState *g_state, Laser
         /* FEEDBACK_D: Evaporación de Hawking */
         l_params->pump_rate = 0.0; /* Detener bombeo */
         evaporate_entropy(s_state, g_state);
+
+        /* ENGINE 2: EL SUBCONSCIENTE (Procesamiento en sector disipativo) */
+        if (s_state->dit_state != 0) {
+            dit_subconscious_step(s_state->dit_state);
+        }
     }
 }
 

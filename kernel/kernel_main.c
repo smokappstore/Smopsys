@@ -24,6 +24,7 @@
 #include "prn_core.h"
 #include "vmx.h"
 #include "quantum_bridge.h"
+#include "dit_engine.h"
 
 
 /* Global state for the Metriplectic heart */
@@ -37,6 +38,9 @@ QuantumVM global_quantum_vm;
 #include "surgical_scheduler.h"
 SurgicalState current_surgical_state;
 LaserParams global_laser_params;
+
+/* DIT Engine Global State */
+DITEngineState global_dit_state;
 
 /* Forward declarations */
 extern void memory_init(void);
@@ -231,6 +235,10 @@ void kernel_main(void) {
     /* Inicializar Scheduler Quirúrgico */
     surgical_scheduler_init(&current_surgical_state);
     laser_params_default(&global_laser_params);
+    
+    /* Inicializar DIT Engine */
+    dit_engine_init(&global_dit_state);
+    current_surgical_state.dit_state = &global_dit_state;
 
     /* Inicializar VMX (Ring -1) */
     init_vmx();

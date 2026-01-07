@@ -8,9 +8,11 @@
 #include "golden_operator.h"
 #include "../drivers/metriplectic_heartbeat.h"
 #include <stdint.h>
+#include "dit_engine.h"
 
 extern GoldenState current_golden_state;
 extern GoldenObservables current_golden_obs;
+extern DITEngineState global_dit_state;
 
 /* Memory Manager Bridge */
 uint32_t memory_get_used_pages(void);
@@ -169,6 +171,35 @@ static void exec_command(const char *cmd) {
     } else if (strcmp(cmd, "bimotype") == 0 || strncmp(cmd, "bimotype ", 9) == 0) {
         const char *msg = (strlen(cmd) > 9) ? cmd + 9 : "BIMO";
         bimotype_pulse_message(msg);
+    } else if (strcmp(cmd, "dit") == 0) {
+        vga_holographic_set_color(VGA_COLOR_LIGHT_MAGENTA, VGA_COLOR_BLACK);
+        vga_holographic_write("\n[CON] Conscious Engine Active. Starting simulation...\n");
+
+        for (uint32_t n = 0; n < 10; n++) {
+            DITPacket packet = { .content = (double)n, .parity = n, .resolved = false };
+            double immediate;
+
+            if (dit_conscious_process(&global_dit_state, packet, &immediate)) {
+                vga_holographic_set_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
+                vga_holographic_write("[CON] Node Par: Proyectando realidad ");
+                vga_holographic_write_decimal(n);
+                vga_holographic_write_char('\n');
+            } else {
+                vga_holographic_set_color(VGA_COLOR_CYAN, VGA_COLOR_BLACK);
+                vga_holographic_write("[CON] Node Impar: Subconsciente validando n=");
+                vga_holographic_write_decimal(n);
+                vga_holographic_write_char('\n');
+            }
+
+            /* Check for "Eureka" moments from background */
+            double upgrade;
+            if (dit_get_upgrade(&global_dit_state, &upgrade)) {
+                vga_holographic_set_color(VGA_COLOR_YELLOW, VGA_COLOR_BLACK);
+                vga_holographic_write("[CON] !INTUICION! Patron resuelto: ");
+                vga_holographic_write_float(upgrade, 4);
+                vga_holographic_write_char('\n');
+            }
+        }
     } else if (strlen(cmd) > 0) {
 
 

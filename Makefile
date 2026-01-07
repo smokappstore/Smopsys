@@ -90,6 +90,7 @@ KERNEL_C_SRCS = \
     $(KERNEL_DIR)/quantum_bridge.c \
     $(KERNEL_DIR)/metriplectic_api.c \
     $(KERNEL_DIR)/prn_modulator.c \
+    $(KERNEL_DIR)/dit_engine.c \
     $(QL_C) \
     $(DRIVERS_DIR)/vga_holographic.c \
     $(DRIVERS_DIR)/bayesian_serial.c \
@@ -109,6 +110,7 @@ KERNEL_C_OBJS = \
     $(BUILD_DIR)/ql_bridge.o \
     $(BUILD_DIR)/metriplectic_api.o \
     $(BUILD_DIR)/prn_modulator.o \
+    $(BUILD_DIR)/dit_engine.o \
     $(BUILD_DIR)/prn_ops.o \
     $(BUILD_DIR)/quantum_program.o \
     $(BUILD_DIR)/vga_holographic.o \
@@ -313,6 +315,11 @@ $(BUILD_DIR)/surgical_scheduler.o: $(KERNEL_DIR)/surgical_scheduler.c
 	@echo "[CC] Compiling surgical_scheduler.c..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/dit_engine.o: $(KERNEL_DIR)/dit_engine.c
+	@mkdir -p $(BUILD_DIR)
+	@echo "[CC] Compiling dit_engine.c..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
 
 $(BUILD_DIR)/metriplectic_heartbeat.o: $(DRIVERS_DIR)/metriplectic_heartbeat.c
@@ -354,13 +361,15 @@ $(BUILD_DIR)/kernel/ept.o: $(KERNEL_DIR)/ept.c
 # TESTS (Host)
 # ============================================================
 
-test: $(TESTS_DIR)/test_golden_operator $(TESTS_DIR)/test_memory $(TESTS_DIR)/test_surgical_scheduler
+test: $(TESTS_DIR)/test_golden_operator $(TESTS_DIR)/test_memory $(TESTS_DIR)/test_surgical_scheduler $(TESTS_DIR)/test_dit_engine
 	@echo "[TEST] Running golden operator tests..."
 	./$(TESTS_DIR)/test_golden_operator
 	@echo "[TEST] Running memory manager tests..."
 	./$(TESTS_DIR)/test_memory
 	@echo "[TEST] Running surgical scheduler tests..."
 	./$(TESTS_DIR)/test_surgical_scheduler
+	@echo "[TEST] Running DIT engine tests..."
+	./$(TESTS_DIR)/test_dit_engine
 
 
 $(TESTS_DIR)/test_golden_operator: $(TESTS_DIR)/test_golden_operator.c
@@ -377,9 +386,17 @@ $(TESTS_DIR)/test_memory: $(TESTS_DIR)/test_memory.cpp MemoryManager.cpp
 		-I. -Ikernel -Idrivers \
 		$^ -o $@ -lm
 
-$(TESTS_DIR)/test_surgical_scheduler: tests/test_surgical_scheduler.c kernel/surgical_scheduler.c
+$(TESTS_DIR)/test_surgical_scheduler: tests/test_surgical_scheduler.c kernel/surgical_scheduler.c kernel/dit_engine.c
 	@mkdir -p $(TESTS_DIR)
 	@echo "[CC] Compiling test_surgical_scheduler..."
+	gcc -Wall -Wextra -g -O0 \
+		-I. -Ikernel -Idrivers \
+		$^ -o $@ -lm
+
+
+$(TESTS_DIR)/test_dit_engine: tests/test_dit_engine.c kernel/dit_engine.c
+	@mkdir -p $(TESTS_DIR)
+	@echo "[CC] Compiling test_dit_engine..."
 	gcc -Wall -Wextra -g -O0 \
 		-I. -Ikernel -Idrivers \
 		$^ -o $@ -lm
